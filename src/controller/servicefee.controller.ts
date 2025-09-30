@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { ServiceFeeService, UpdateServiceFeeData } from '../services/servicefee.service.js';
+import { ServiceFeeService } from '../services/servicefee.service.js';
 
 export class ServiceFeeController {
   private serviceFeeService: ServiceFeeService;
@@ -14,14 +14,10 @@ export class ServiceFeeController {
   async getCurrentServiceFee(request: FastifyRequest, reply: FastifyReply) {
     try {
       const serviceFee = await this.serviceFeeService.getCurrentServiceFee();
-      const serviceFeeRate = await this.serviceFeeService.getCurrentServiceFeeRate();
 
       return reply.status(200).send({
         success: true,
-        data: {
-          currentConfig: serviceFee,
-          displayInfo: serviceFeeRate
-        }
+        data: serviceFee
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -37,115 +33,36 @@ export class ServiceFeeController {
    */
   async updateServiceFee(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const updateData = request.body as UpdateServiceFeeData;
+      const { type, percentage } = request.body as { type: 'fixed-rate' | 'floating'; percentage: number };
 
       // Validate input
-      if (updateData.type && !['fixed-rate', 'floating'].includes(updateData.type)) {
+      if (!['fixed-rate', 'floating'].includes(type)) {
         return reply.status(400).send({
           error: 'Type must be either "fixed-rate" or "floating"'
         });
       }
 
-      if (updateData.fee !== undefined) {
-        if (typeof updateData.fee !== 'number' || updateData.fee < 0 || updateData.fee > 100) {
-          return reply.status(400).send({
-            error: 'Fee must be a percentage between 0 and 100'
-          });
-        }
+      if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {
+        return reply.status(400).send({
+          error: 'Percentage must be a number between 0 and 100'
+        });
       }
 
-      const updatedServiceFee = await this.serviceFeeService.updateServiceFee(updateData);
+      const updatedServiceFee = await this.serviceFeeService.updateServiceFee({
+        type,
+        fee: percentage
+      });
 
       return reply.status(200).send({
         success: true,
         message: 'Service fee updated successfully',
-        data: { serviceFee: updatedServiceFee }
+        data: updatedServiceFee
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       
-      if (errorMessage.includes('cannot exceed') || 
-          errorMessage.includes('cannot be negative') ||
-          errorMessage.includes('must be either')) {
-        return reply.status(400).send({
-          error: errorMessage
-        });
-      }
-
       return reply.status(500).send({
         error: 'Failed to update service fee',
-        details: errorMessage
-      });
-    }
-  }
-
-  /**
-   * Set floating rate percentage (admin only)
-   */
-  async setFloatingRate(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const { percentage } = request.body as { percentage: number };
-
-      if (typeof percentage !== 'number') {
-        return reply.status(400).send({
-          error: 'Percentage must be a number'
-        });
-      }
-
-      const serviceFee = await this.serviceFeeService.setFloatingRate(percentage);
-
-      return reply.status(200).send({
-        success: true,
-        message: `Floating rate set to ${percentage}%`,
-        data: { serviceFee }
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
-      if (errorMessage.includes('must be between')) {
-        return reply.status(400).send({
-          error: errorMessage
-        });
-      }
-
-      return reply.status(500).send({
-        error: 'Failed to set floating rate',
-        details: errorMessage
-      });
-    }
-  }
-
-  /**
-   * Set fixed rate percentage (admin only)
-   */
-  async setFixedRate(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const { percentage } = request.body as { percentage: number };
-
-      if (typeof percentage !== 'number') {
-        return reply.status(400).send({
-          error: 'Percentage must be a number'
-        });
-      }
-
-      const serviceFee = await this.serviceFeeService.setFixedRate(percentage);
-
-      return reply.status(200).send({
-        success: true,
-        message: `Fixed rate set to ${percentage}%`,
-        data: { serviceFee }
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
-      if (errorMessage.includes('must be between')) {
-        return reply.status(400).send({
-          error: errorMessage
-        });
-      }
-
-      return reply.status(500).send({
-        error: 'Failed to set fixed rate',
         details: errorMessage
       });
     }
@@ -158,16 +75,16 @@ export class ServiceFeeController {
     try {
       const { amount } = request.query as { amount: string };
 
-      if (!amount) {
+      if (!amount || isNaN(Number(amount))) {
         return reply.status(400).send({
-          error: 'Amount is required'
+          error: 'Amount is required and must be a valid number'
         });
       }
 
-      const numericAmount = parseFloat(amount);
-      if (isNaN(numericAmount) || numericAmount < 0) {
+      const numericAmount = Number(amount);
+      if (numericAmount < 0) {
         return reply.status(400).send({
-          error: 'Amount must be a valid positive number'
+          error: 'Amount cannot be negative'
         });
       }
 
@@ -175,17 +92,10 @@ export class ServiceFeeController {
 
       return reply.status(200).send({
         success: true,
-        data: { calculation }
+        data: calculation
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
-      if (errorMessage.includes('cannot be negative')) {
-        return reply.status(400).send({
-          error: errorMessage
-        });
-      }
-
       return reply.status(500).send({
         error: 'Failed to calculate service fee',
         details: errorMessage
@@ -194,50 +104,7 @@ export class ServiceFeeController {
   }
 
   /**
-   * Calculate base amount from total (reverse calculation)
-   */
-  async calculateBaseAmount(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const { totalAmount } = request.query as { totalAmount: string };
-
-      if (!totalAmount) {
-        return reply.status(400).send({
-          error: 'Total amount is required'
-        });
-      }
-
-      const numericTotal = parseFloat(totalAmount);
-      if (isNaN(numericTotal) || numericTotal < 0) {
-        return reply.status(400).send({
-          error: 'Total amount must be a valid positive number'
-        });
-      }
-
-      const calculation = await this.serviceFeeService.calculateBaseAmountFromTotal(numericTotal);
-
-      return reply.status(200).send({
-        success: true,
-        data: { calculation }
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
-      if (errorMessage.includes('cannot be negative') || 
-          errorMessage.includes('less than the fixed service fee')) {
-        return reply.status(400).send({
-          error: errorMessage
-        });
-      }
-
-      return reply.status(500).send({
-        error: 'Failed to calculate base amount',
-        details: errorMessage
-      });
-    }
-  }
-
-  /**
-   * Get service fee history (admin only)
+   * Get service fee history
    */
   async getServiceFeeHistory(request: FastifyRequest, reply: FastifyReply) {
     try {
@@ -245,8 +112,7 @@ export class ServiceFeeController {
 
       return reply.status(200).send({
         success: true,
-        data: { history },
-        total: history.length
+        data: history
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -258,7 +124,7 @@ export class ServiceFeeController {
   }
 
   /**
-   * Get service fee statistics (admin only)
+   * Get service fee statistics
    */
   async getServiceFeeStats(request: FastifyRequest, reply: FastifyReply) {
     try {
@@ -266,7 +132,7 @@ export class ServiceFeeController {
 
       return reply.status(200).send({
         success: true,
-        data: { stats }
+        data: stats
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -278,49 +144,21 @@ export class ServiceFeeController {
   }
 
   /**
-   * Reset service fee to default (admin only)
+   * Reset service fee to default (0% floating rate)
    */
-  async resetToDefault(request: FastifyRequest, reply: FastifyReply) {
+  async resetServiceFee(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const serviceFee = await this.serviceFeeService.resetToDefault();
+      const defaultServiceFee = await this.serviceFeeService.resetToDefault();
 
       return reply.status(200).send({
         success: true,
-        message: 'Service fee reset to default (0% floating rate)',
-        data: { serviceFee }
+        message: 'Service fee reset to default configuration',
+        data: defaultServiceFee
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       return reply.status(500).send({
         error: 'Failed to reset service fee',
-        details: errorMessage
-      });
-    }
-  }
-
-  /**
-   * Validate service fee configuration (admin only)
-   */
-  async validateConfig(request: FastifyRequest, reply: FastifyReply) {
-    try {
-      const { type, fee } = request.body as { type: 'fixed-rate' | 'floating'; fee: number };
-
-      if (!type || fee === undefined) {
-        return reply.status(400).send({
-          error: 'Type and fee are required'
-        });
-      }
-
-      const validation = this.serviceFeeService.validateServiceFeeConfig(type, fee);
-
-      return reply.status(200).send({
-        success: true,
-        data: { validation }
-      });
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      return reply.status(500).send({
-        error: 'Failed to validate configuration',
         details: errorMessage
       });
     }

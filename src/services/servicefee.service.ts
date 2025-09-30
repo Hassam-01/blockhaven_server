@@ -1,14 +1,14 @@
-import { Repository } from 'typeorm';
-import { AppDataSource } from '../config/data-source.js';
-import { ServiceFee } from '../entities/servicefee.entity.js';
+import { Repository } from "typeorm";
+import { AppDataSource } from "../config/data-source.js";
+import { ServiceFee } from "../entities/servicefee.entity.js";
 
 export interface CreateServiceFeeData {
-  type: 'fixed-rate' | 'floating';
+  type: "fixed-rate" | "floating";
   fee: number; // percentage for both types
 }
 
 export interface UpdateServiceFeeData {
-  type?: 'fixed-rate' | 'floating';
+  type?: "fixed-rate" | "floating";
   fee?: number; // percentage for both types
 }
 
@@ -16,7 +16,7 @@ export interface ServiceFeeCalculation {
   originalAmount: number;
   serviceFeeAmount: number;
   totalAmount: number;
-  feeType: 'fixed-rate' | 'floating';
+  feeType: "fixed-rate" | "floating";
   feePercentage: number;
 }
 
@@ -33,41 +33,43 @@ export class ServiceFeeService {
   async getCurrentServiceFee(): Promise<ServiceFee | null> {
     // Get the most recent service fee configuration
     return await this.serviceFeeRepository.findOne({
-      order: { created_at: 'DESC' }
+      order: { created_at: "DESC" },
     });
   }
 
   /**
    * Update service fee configuration
    */
-  async updateServiceFee(updateData: UpdateServiceFeeData): Promise<ServiceFee> {
+  async updateServiceFee(
+    updateData: UpdateServiceFeeData
+  ): Promise<ServiceFee> {
     const { type, fee } = updateData;
 
     // Validate input
-    if (type && !['fixed-rate', 'floating'].includes(type)) {
+    if (type && !["fixed-rate", "floating"].includes(type)) {
       throw new Error('Type must be either "fixed-rate" or "floating"');
     }
 
     if (fee !== undefined) {
       if (fee < 0) {
-        throw new Error('Fee percentage cannot be negative');
+        throw new Error("Fee percentage cannot be negative");
       }
 
       // Validate percentage for both types
       if (fee > 100) {
-        throw new Error('Fee percentage cannot exceed 100%');
+        throw new Error("Fee percentage cannot exceed 100%");
       }
     }
 
     // Get current service fee
     const currentServiceFee = await this.getCurrentServiceFee();
 
-    const finalType = type || currentServiceFee?.type || 'floating';
+    const finalType = type || currentServiceFee?.type || "floating";
     const finalFee = fee !== undefined ? fee : currentServiceFee?.fee || 0;
 
     // Additional validation after determining final values
     if (finalFee > 100) {
-      throw new Error('Fee percentage cannot exceed 100%');
+      throw new Error("Fee percentage cannot exceed 100%");
     }
 
     // Create new service fee configuration (keeping history)
@@ -84,12 +86,12 @@ export class ServiceFeeService {
    */
   async setFloatingRate(percentage: number): Promise<ServiceFee> {
     if (percentage < 0 || percentage > 100) {
-      throw new Error('Floating rate percentage must be between 0 and 100');
+      throw new Error("Floating rate percentage must be between 0 and 100");
     }
 
     return await this.updateServiceFee({
-      type: 'floating',
-      fee: percentage
+      type: "floating",
+      fee: percentage,
     });
   }
 
@@ -98,12 +100,12 @@ export class ServiceFeeService {
    */
   async setFixedRate(percentage: number): Promise<ServiceFee> {
     if (percentage < 0 || percentage > 100) {
-      throw new Error('Fixed rate percentage must be between 0 and 100');
+      throw new Error("Fixed rate percentage must be between 0 and 100");
     }
 
     return await this.updateServiceFee({
-      type: 'fixed-rate',
-      fee: percentage
+      type: "fixed-rate",
+      fee: percentage,
     });
   }
 
@@ -112,7 +114,7 @@ export class ServiceFeeService {
    */
   async calculateServiceFee(amount: number): Promise<ServiceFeeCalculation> {
     if (amount < 0) {
-      throw new Error('Amount cannot be negative');
+      throw new Error("Amount cannot be negative");
     }
 
     const serviceFeeConfig = await this.getCurrentServiceFee();
@@ -123,8 +125,8 @@ export class ServiceFeeService {
         originalAmount: amount,
         serviceFeeAmount: 0,
         totalAmount: amount,
-        feeType: 'floating',
-        feePercentage: 0
+        feeType: "floating",
+        feePercentage: 0,
       };
     }
 
@@ -141,7 +143,7 @@ export class ServiceFeeService {
       serviceFeeAmount,
       totalAmount: amount + serviceFeeAmount,
       feeType: serviceFeeConfig.type,
-      feePercentage: serviceFeeConfig.fee
+      feePercentage: serviceFeeConfig.fee,
     };
   }
 
@@ -150,7 +152,7 @@ export class ServiceFeeService {
    */
   async getServiceFeeHistory(): Promise<ServiceFee[]> {
     return await this.serviceFeeRepository.find({
-      order: { created_at: 'DESC' }
+      order: { created_at: "DESC" },
     });
   }
 
@@ -159,7 +161,7 @@ export class ServiceFeeService {
    */
   async getServiceFeeById(id: string): Promise<ServiceFee | null> {
     if (!id) {
-      throw new Error('Service fee ID is required');
+      throw new Error("Service fee ID is required");
     }
 
     return await this.serviceFeeRepository.findOne({ where: { id } });
@@ -173,19 +175,20 @@ export class ServiceFeeService {
     totalConfigurations: number;
     configurationHistory: ServiceFee[];
   }> {
-    const [currentConfig, totalConfigurations, configurationHistory] = await Promise.all([
-      this.getCurrentServiceFee(),
-      this.serviceFeeRepository.count(),
-      this.serviceFeeRepository.find({
-        order: { created_at: 'DESC' },
-        take: 10 // Last 10 configurations
-      })
-    ]);
+    const [currentConfig, totalConfigurations, configurationHistory] =
+      await Promise.all([
+        this.getCurrentServiceFee(),
+        this.serviceFeeRepository.count(),
+        this.serviceFeeRepository.find({
+          order: { created_at: "DESC" },
+          take: 10, // Last 10 configurations
+        }),
+      ]);
 
     return {
       currentConfig,
       totalConfigurations,
-      configurationHistory
+      configurationHistory,
     };
   }
 
@@ -194,32 +197,35 @@ export class ServiceFeeService {
    */
   async resetToDefault(): Promise<ServiceFee> {
     return await this.updateServiceFee({
-      type: 'floating',
-      fee: 0
+      type: "floating",
+      fee: 0,
     });
   }
 
   /**
    * Validate service fee configuration
    */
-  validateServiceFeeConfig(type: 'fixed-rate' | 'floating', fee: number): { isValid: boolean; errors: string[] } {
+  validateServiceFeeConfig(
+    type: "fixed-rate" | "floating",
+    fee: number
+  ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    if (!['fixed-rate', 'floating'].includes(type)) {
+    if (!["fixed-rate", "floating"].includes(type)) {
       errors.push('Type must be either "fixed-rate" or "floating"');
     }
 
     if (fee < 0) {
-      errors.push('Fee percentage cannot be negative');
+      errors.push("Fee percentage cannot be negative");
     }
 
     if (fee > 100) {
-      errors.push('Fee percentage cannot exceed 100%');
+      errors.push("Fee percentage cannot exceed 100%");
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -237,11 +243,11 @@ export class ServiceFeeService {
   async calculateBaseAmountFromTotal(totalAmount: number): Promise<{
     baseAmount: number;
     serviceFeeAmount: number;
-    feeType: 'fixed-rate' | 'floating';
+    feeType: "fixed-rate" | "floating";
     feePercentage: number;
   }> {
     if (totalAmount < 0) {
-      throw new Error('Total amount cannot be negative');
+      throw new Error("Total amount cannot be negative");
     }
 
     const serviceFeeConfig = await this.getCurrentServiceFee();
@@ -250,8 +256,8 @@ export class ServiceFeeService {
       return {
         baseAmount: totalAmount,
         serviceFeeAmount: 0,
-        feeType: 'floating',
-        feePercentage: 0
+        feeType: "floating",
+        feePercentage: 0,
       };
     }
 
@@ -270,7 +276,7 @@ export class ServiceFeeService {
       baseAmount: roundedBaseAmount,
       serviceFeeAmount: roundedServiceFeeAmount,
       feeType: serviceFeeConfig.type,
-      feePercentage: serviceFeeConfig.fee
+      feePercentage: serviceFeeConfig.fee,
     };
   }
 
@@ -278,7 +284,7 @@ export class ServiceFeeService {
    * Get current service fee rate for display
    */
   async getCurrentServiceFeeRate(): Promise<{
-    type: 'fixed-rate' | 'floating';
+    type: "fixed-rate" | "floating";
     percentage: number;
     displayText: string;
   } | null> {
@@ -293,7 +299,7 @@ export class ServiceFeeService {
     return {
       type: serviceFeeConfig.type,
       percentage: serviceFeeConfig.fee,
-      displayText
+      displayText,
     };
   }
 }

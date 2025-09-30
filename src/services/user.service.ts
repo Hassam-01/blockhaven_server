@@ -1,15 +1,15 @@
-import { Repository } from 'typeorm';
-import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
-import { AppDataSource } from '../config/data-source.js';
-import { User } from '../entities/user.entity.js';
+import { Repository } from "typeorm";
+import bcrypt from "bcryptjs";
+import jwt, { SignOptions } from "jsonwebtoken";
+import { AppDataSource } from "../config/data-source.js";
+import { User } from "../entities/user.entity.js";
 
 export interface SignupData {
   email: string;
   password: string;
   first_name: string;
   last_name: string;
-  user_type?: 'admin' | 'customer';
+  user_type?: "admin" | "customer";
 }
 
 export interface LoginData {
@@ -23,7 +23,7 @@ export interface UpdatePasswordData {
 }
 
 export interface AuthResponse {
-  user: Omit<User, 'password_hash'>;
+  user: Omit<User, "password_hash">;
   token: string;
 }
 
@@ -34,25 +34,28 @@ export class UserService {
 
   constructor() {
     this.userRepository = AppDataSource.getRepository(User);
-    this.jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-this-in-production';
-    this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '24h';
+    this.jwtSecret =
+      process.env.JWT_SECRET || "your-secret-key-change-this-in-production";
+    this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || "24h";
   }
 
   /**
    * User signup
    */
   async signup(signupData: SignupData): Promise<AuthResponse> {
-    const { email, password, first_name, last_name, user_type = 'customer' } = signupData;
-
+    const { email, password, first_name, last_name } = signupData;
+    const user_type = "customer";
     // Check if user already exists
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
-      throw new Error('User with this email already exists');
+      throw new Error("User with this email already exists");
     }
 
     // Validate password strength
     if (password.length < 6) {
-      throw new Error('Password must be at least 6 characters long');
+      throw new Error("Password must be at least 6 characters long");
     }
 
     // Hash password
@@ -91,18 +94,18 @@ export class UserService {
     // Find user by email
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     }
 
     // Check if user is active
     if (!user.is_active) {
-      throw new Error('Account is deactivated');
+      throw new Error("Account is deactivated");
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
-      throw new Error('Invalid email or password');
+      throw new Error("Invalid email or password");
     }
 
     // Generate JWT token
@@ -120,30 +123,39 @@ export class UserService {
   /**
    * Update user password
    */
-  async updatePassword(userId: string, updatePasswordData: UpdatePasswordData): Promise<{ message: string }> {
+  async updatePassword(
+    userId: string,
+    updatePasswordData: UpdatePasswordData
+  ): Promise<{ message: string }> {
     const { currentPassword, newPassword } = updatePasswordData;
 
     // Find user by ID
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+    const isCurrentPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password_hash
+    );
     if (!isCurrentPasswordValid) {
-      throw new Error('Current password is incorrect');
+      throw new Error("Current password is incorrect");
     }
 
     // Validate new password strength
     if (newPassword.length < 6) {
-      throw new Error('New password must be at least 6 characters long');
+      throw new Error("New password must be at least 6 characters long");
     }
 
     // Check if new password is different from current password
-    const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+    const isSamePassword = await bcrypt.compare(
+      newPassword,
+      user.password_hash
+    );
     if (isSamePassword) {
-      throw new Error('New password must be different from current password');
+      throw new Error("New password must be different from current password");
     }
 
     // Hash new password
@@ -151,15 +163,19 @@ export class UserService {
     const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
 
     // Update user password
-    await this.userRepository.update(userId, { password_hash: newPasswordHash });
+    await this.userRepository.update(userId, {
+      password_hash: newPasswordHash,
+    });
 
-    return { message: 'Password updated successfully' };
+    return { message: "Password updated successfully" };
   }
 
   /**
    * Get user by ID (without password hash)
    */
-  async getUserById(userId: string): Promise<Omit<User, 'password_hash'> | null> {
+  async getUserById(
+    userId: string
+  ): Promise<Omit<User, "password_hash"> | null> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
       return null;
@@ -172,7 +188,9 @@ export class UserService {
   /**
    * Get user by email (without password hash)
    */
-  async getUserByEmail(email: string): Promise<Omit<User, 'password_hash'> | null> {
+  async getUserByEmail(
+    email: string
+  ): Promise<Omit<User, "password_hash"> | null> {
     const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
       return null;
@@ -187,10 +205,13 @@ export class UserService {
    */
   verifyToken(token: string): { userId: string; email: string } {
     try {
-      const decoded = jwt.verify(token, this.jwtSecret) as { userId: string; email: string };
+      const decoded = jwt.verify(token, this.jwtSecret) as {
+        userId: string;
+        email: string;
+      };
       return decoded;
     } catch (error) {
-      throw new Error('Invalid or expired token');
+      throw new Error("Invalid or expired token");
     }
   }
 
@@ -198,11 +219,7 @@ export class UserService {
    * Generate JWT token
    */
   private generateToken(userId: string, email: string): string {
-    return jwt.sign(
-      { userId, email },
-      this.jwtSecret,
-      { expiresIn: '24h' }
-    );
+    return jwt.sign({ userId, email }, this.jwtSecret, { expiresIn: "24h" });
   }
 
   /**
@@ -211,11 +228,11 @@ export class UserService {
   async deactivateUser(userId: string): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     await this.userRepository.update(userId, { is_active: false });
-    return { message: 'User account deactivated successfully' };
+    return { message: "User account deactivated successfully" };
   }
 
   /**
@@ -224,35 +241,42 @@ export class UserService {
   async activateUser(userId: string): Promise<{ message: string }> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     await this.userRepository.update(userId, { is_active: true });
-    return { message: 'User account activated successfully' };
+    return { message: "User account activated successfully" };
   }
 
   /**
    * Update user profile
    */
-  async updateProfile(userId: string, updateData: { first_name?: string; last_name?: string; email?: string }): Promise<Omit<User, 'password_hash'>> {
+  async updateProfile(
+    userId: string,
+    updateData: { first_name?: string; last_name?: string; email?: string }
+  ): Promise<Omit<User, "password_hash">> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
     if (!user) {
-      throw new Error('User not found');
+      throw new Error("User not found");
     }
 
     // If email is being updated, check if it's already taken
     if (updateData.email && updateData.email !== user.email) {
-      const existingUser = await this.userRepository.findOne({ where: { email: updateData.email } });
+      const existingUser = await this.userRepository.findOne({
+        where: { email: updateData.email },
+      });
       if (existingUser) {
-        throw new Error('Email is already taken');
+        throw new Error("Email is already taken");
       }
     }
 
     await this.userRepository.update(userId, updateData);
-    
-    const updatedUser = await this.userRepository.findOne({ where: { id: userId } });
+
+    const updatedUser = await this.userRepository.findOne({
+      where: { id: userId },
+    });
     if (!updatedUser) {
-      throw new Error('User not found after update');
+      throw new Error("User not found after update");
     }
 
     const { password_hash: _, ...userWithoutPassword } = updatedUser;
