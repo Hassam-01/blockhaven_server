@@ -11,6 +11,11 @@ export async function serviceFeeRoutes(fastify: FastifyInstance, options: Fastif
     return serviceFeeController.getCurrentServiceFee(request, reply);
   });
 
+  // Public route - Get all service fee configurations
+  fastify.get('/all', async (request, reply) => {
+    return serviceFeeController.getAllServiceFees(request, reply);
+  });
+
   // Admin-only route - Update service fee configuration
   fastify.put('/', {
     preHandler: [
@@ -20,11 +25,11 @@ export async function serviceFeeRoutes(fastify: FastifyInstance, options: Fastif
     schema: {
       body: {
         type: 'object',
-        required: ['type', 'percentage'],
         properties: {
-          type: { type: 'string', enum: ['fixed-rate', 'floating'] },
-          percentage: { type: 'number', minimum: 0, maximum: 100 }
-        }
+          fixedRateFee: { type: 'number', minimum: 0, maximum: 100 },
+          floatingRateFee: { type: 'number', minimum: 0, maximum: 100 }
+        },
+        additionalProperties: false
       }
     }
   }, async (request, reply) => {
@@ -36,14 +41,20 @@ export async function serviceFeeRoutes(fastify: FastifyInstance, options: Fastif
     schema: {
       querystring: {
         type: 'object',
-        required: ['amount'],
+        required: ['amount', 'exchangeType'],
         properties: {
-          amount: { type: 'string' }
+          amount: { type: 'string' },
+          exchangeType: { type: 'string', enum: ['fixed-rate', 'floating'] }
         }
       }
     }
   }, async (request, reply) => {
     return serviceFeeController.calculateServiceFee(request, reply);
+  });
+
+  // Public route - Get current service fee rates for both exchange types
+  fastify.get('/rates', async (request, reply) => {
+    return serviceFeeController.getCurrentServiceFeeRates(request, reply);
   });
 
   // Admin-only route - Get service fee history

@@ -4,6 +4,7 @@ import { User } from "../entities/user.entity.js";
 import { Testimonial } from "../entities/testimonial.entity.js";
 import { Faq } from "../entities/faq.entity.js";
 import { ServiceFee } from "../entities/servicefee.entity.js";
+import { Contact } from "../entities/contact.entity.js";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -12,7 +13,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || "postgres",
   password: process.env.DB_PASSWORD || "Murtajiz001",
   database: process.env.DB_NAME || "blockhaven",
-  entities: [User, Testimonial, Faq, ServiceFee],
+  entities: [User, Testimonial, Faq, ServiceFee, Contact],
   synchronize: true,
   logging: true,
 });

@@ -11,7 +11,8 @@ export class ServiceFeeController {
   /**
    * Get current service fee configuration
    */
-  async getCurrentServiceFee(request: FastifyRequest, reply: FastifyReply) {
+  async getCurrentServiceFee(_request: FastifyRequest, reply: FastifyReply) {
+    console.log("request received for fees: ")
     try {
       const serviceFee = await this.serviceFeeService.getCurrentServiceFee();
 
@@ -29,29 +30,62 @@ export class ServiceFeeController {
   }
 
   /**
+   * Get all service fee configurations
+   */
+  async getAllServiceFees(_request: FastifyRequest, reply: FastifyReply) {
+    console.log("request received for all fees: ")
+    try {
+      const serviceFees = await this.serviceFeeService.getAllServiceFees();
+
+      return reply.status(200).send({
+        success: true,
+        data: serviceFees
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return reply.status(500).send({
+        error: 'Failed to retrieve all service fees',
+        details: errorMessage
+      });
+    }
+  }
+
+  /**
    * Update service fee configuration (admin only)
    */
   async updateServiceFee(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const { type, percentage } = request.body as { type: 'fixed-rate' | 'floating'; percentage: number };
+      const { fixedRateFee, floatingRateFee } = request.body as { 
+        fixedRateFee?: number; 
+        floatingRateFee?: number; 
+      };
 
-      // Validate input
-      if (!['fixed-rate', 'floating'].includes(type)) {
+      // Validate that at least one fee is provided
+      if (fixedRateFee === undefined && floatingRateFee === undefined) {
         return reply.status(400).send({
-          error: 'Type must be either "fixed-rate" or "floating"'
+          error: 'At least one of fixedRateFee or floatingRateFee must be provided'
         });
       }
 
-      if (typeof percentage !== 'number' || percentage < 0 || percentage > 100) {
+      // Validate fixed rate fee if provided
+      if (fixedRateFee !== undefined && (typeof fixedRateFee !== 'number' || fixedRateFee < 0 || fixedRateFee > 100)) {
         return reply.status(400).send({
-          error: 'Percentage must be a number between 0 and 100'
+          error: 'Fixed rate fee must be a number between 0 and 100'
         });
       }
 
-      const updatedServiceFee = await this.serviceFeeService.updateServiceFee({
-        type,
-        fee: percentage
-      });
+      // Validate floating rate fee if provided
+      if (floatingRateFee !== undefined && (typeof floatingRateFee !== 'number' || floatingRateFee < 0 || floatingRateFee > 100)) {
+        return reply.status(400).send({
+          error: 'Floating rate fee must be a number between 0 and 100'
+        });
+      }
+
+      const updateData: any = {};
+      if (fixedRateFee !== undefined) updateData.fixedRateFee = fixedRateFee;
+      if (floatingRateFee !== undefined) updateData.floatingRateFee = floatingRateFee;
+
+      const updatedServiceFee = await this.serviceFeeService.updateServiceFee(updateData);
 
       return reply.status(200).send({
         success: true,
@@ -73,11 +107,20 @@ export class ServiceFeeController {
    */
   async calculateServiceFee(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const { amount } = request.query as { amount: string };
+      const { amount, exchangeType } = request.query as { 
+        amount: string; 
+        exchangeType: 'fixed-rate' | 'floating' 
+      };
 
       if (!amount || isNaN(Number(amount))) {
         return reply.status(400).send({
           error: 'Amount is required and must be a valid number'
+        });
+      }
+
+      if (!exchangeType || !['fixed-rate', 'floating'].includes(exchangeType)) {
+        return reply.status(400).send({
+          error: 'Exchange type is required and must be either "fixed-rate" or "floating"'
         });
       }
 
@@ -88,7 +131,7 @@ export class ServiceFeeController {
         });
       }
 
-      const calculation = await this.serviceFeeService.calculateServiceFee(numericAmount);
+      const calculation = await this.serviceFeeService.calculateServiceFee(numericAmount, exchangeType);
 
       return reply.status(200).send({
         success: true,
@@ -159,6 +202,26 @@ export class ServiceFeeController {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       return reply.status(500).send({
         error: 'Failed to reset service fee',
+        details: errorMessage
+      });
+    }
+  }
+
+  /**
+   * Get current service fee rates for both exchange types
+   */
+  async getCurrentServiceFeeRates(_request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const rates = await this.serviceFeeService.getCurrentServiceFeeRates();
+
+      return reply.status(200).send({
+        success: true,
+        data: rates
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      return reply.status(500).send({
+        error: 'Failed to retrieve current service fee rates',
         details: errorMessage
       });
     }

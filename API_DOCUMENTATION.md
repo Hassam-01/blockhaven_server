@@ -1,13 +1,95 @@
 # BlockHeaven Server API Documentation
 
 ## Overview
-BlockHeaven server provides a comprehensive API for managing users, FAQs, and testimonials with proper authentication and authorization.
+BlockHeaven server provides a comprehensive API for managing users, FAQs, testimonials, and contact forms with proper authentication and authorization.
 
 ## Authentication
 Most endpoints require authentication using Bearer tokens. Include the token in the Authorization header:
 ```
 Authorization: Bearer <your-jwt-token>
 ```
+
+## Contact Form Endpoints
+
+### Public Endpoints
+- `POST /api/contact` - Submit contact form (No authentication required)
+
+### Protected Endpoints (Authenticated Users)
+- `GET /api/contacts` - Get all contact submissions
+- `GET /api/contacts/:id` - Get specific contact submission
+- `DELETE /api/contacts/:id` - Delete contact submission
+
+### Contact Form Submission Details
+
+#### POST /api/contact
+Submit a contact form. This endpoint is public and doesn't require authentication.
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "phone": "+1234567890",
+  "subject": "Inquiry about services",
+  "message": "I would like to know more about your blockchain services."
+}
+```
+
+**Required Fields:**
+- `name` (string, max 100 characters)
+- `email` (string, max 255 characters, valid email format)
+- `message` (string, max 2000 characters)
+
+**Optional Fields:**
+- `phone` (string, max 20 characters)
+- `subject` (string, max 200 characters)
+
+**Response (201 Created):**
+```json
+{
+  "message": "Contact form submitted successfully! We'll get back to you soon.",
+  "contact": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "createdAt": "2025-10-01T10:30:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Validation errors
+- `500 Internal Server Error` - Server or email sending errors
+
+#### GET /api/contacts
+Get all contact form submissions (Admin only).
+
+**Response (200 OK):**
+```json
+{
+  "message": "Contacts retrieved successfully",
+  "contacts": [
+    {
+      "id": 1,
+      "name": "John Doe",
+      "email": "john.doe@example.com",
+      "phone": "+1234567890",
+      "subject": "Inquiry about services",
+      "message": "I would like to know more...",
+      "createdAt": "2025-10-01T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+#### GET /api/contacts/:id
+Get a specific contact submission by ID (Admin only).
+
+#### DELETE /api/contacts/:id
+Delete a contact submission (Admin only).
+
+### Email Configuration
+When a contact form is submitted, an email notification is automatically sent to the configured admin email address with the contact details.
 
 ## User Endpoints
 

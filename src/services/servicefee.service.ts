@@ -2,14 +2,14 @@ import { Repository } from "typeorm";
 import { AppDataSource } from "../config/data-source.js";
 import { ServiceFee } from "../entities/servicefee.entity.js";
 
-export interface CreateServiceFeeData {
-  type: "fixed-rate" | "floating";
-  fee: number; // percentage for both types
+export interface ServiceFeeConfig {
+  fixedRateFee: number; // percentage for fixed-rate exchanges
+  floatingRateFee: number; // percentage for floating rate exchanges
 }
 
 export interface UpdateServiceFeeData {
-  type?: "fixed-rate" | "floating";
-  fee?: number; // percentage for both types
+  fixedRateFee?: number; // percentage for fixed-rate exchanges
+  floatingRateFee?: number; // percentage for floating rate exchanges
 }
 
 export interface ServiceFeeCalculation {
@@ -28,122 +28,173 @@ export class ServiceFeeService {
   }
 
   /**
-   * Get current active service fee configuration
+   * Get current active service fee configuration (both fixed and floating rates)
    */
-  async getCurrentServiceFee(): Promise<ServiceFee | null> {
-    // Get the most recent service fee configuration
-    return await this.serviceFeeRepository.findOne({
+  async getCurrentServiceFee(): Promise<ServiceFeeConfig> {
+    // Get the most recent configuration for both types
+    const fixedRateConfig = await this.serviceFeeRepository.findOne({
+      where: { type: "fixed-rate" },
       order: { created_at: "DESC" },
     });
+
+    const floatingRateConfig = await this.serviceFeeRepository.findOne({
+      where: { type: "floating" },
+      order: { created_at: "DESC" },
+    });
+
+    return {
+      fixedRateFee: fixedRateConfig?.fee || 0,
+      floatingRateFee: floatingRateConfig?.fee || 0,
+    };
   }
 
   /**
-   * Update service fee configuration
+   * Get all service fee configurations
+   */
+  async getAllServiceFees(): Promise<ServiceFee[]> {
+    // Get all service fee configurations ordered by creation date
+    console.log("request in the service: ");
+    const data = await this.serviceFeeRepository.find({
+      order: { created_at: "DESC" },
+    });
+    console.log("request in the service: ", data);
+    return data;
+  }
+
+  /**
+   * Update service fee configuration for one or both exchange types
    */
   async updateServiceFee(
     updateData: UpdateServiceFeeData
-  ): Promise<ServiceFee> {
-    const { type, fee } = updateData;
+  ): Promise<ServiceFeeConfig> {
+    const { fixedRateFee, floatingRateFee } = updateData;
 
     // Validate input
-    if (type && !["fixed-rate", "floating"].includes(type)) {
-      throw new Error('Type must be either "fixed-rate" or "floating"');
-    }
-
-    if (fee !== undefined) {
-      if (fee < 0) {
-        throw new Error("Fee percentage cannot be negative");
+    if (fixedRateFee !== undefined) {
+      if (fixedRateFee < 0) {
+        throw new Error("Fixed rate fee percentage cannot be negative");
       }
-
-      // Validate percentage for both types
-      if (fee > 100) {
-        throw new Error("Fee percentage cannot exceed 100%");
+      if (fixedRateFee > 100) {
+        throw new Error("Fixed rate fee percentage cannot exceed 100%");
       }
     }
 
-    // Get current service fee
-    const currentServiceFee = await this.getCurrentServiceFee();
-
-    const finalType = type || currentServiceFee?.type || "floating";
-    const finalFee = fee !== undefined ? fee : currentServiceFee?.fee || 0;
-
-    // Additional validation after determining final values
-    if (finalFee > 100) {
-      throw new Error("Fee percentage cannot exceed 100%");
+    if (floatingRateFee !== undefined) {
+      if (floatingRateFee < 0) {
+        throw new Error("Floating rate fee percentage cannot be negative");
+      }
+      if (floatingRateFee > 100) {
+        throw new Error("Floating rate fee percentage cannot exceed 100%");
+      }
     }
 
-    // Create new service fee configuration (keeping history)
-    const newServiceFee = this.serviceFeeRepository.create({
-      type: finalType,
-      fee: finalFee,
-    });
+    // Update fixed rate fee if provided
+    if (fixedRateFee !== undefined) {
+      // Fetch the existing fixed-rate service fee entry
+      const existingFixedRate = await this.serviceFeeRepository.findOne({
+        where: { type: "fixed-rate" },
+        order: { created_at: "DESC" },
+      });
 
-    return await this.serviceFeeRepository.save(newServiceFee);
+      if (existingFixedRate) {
+        existingFixedRate.fee = fixedRateFee;
+        await this.serviceFeeRepository.save(existingFixedRate);
+      } else {
+        // If not found, create a new one as fallback
+        const fixedRateServiceFee = this.serviceFeeRepository.create({
+          type: "fixed-rate",
+          fee: fixedRateFee,
+        });
+        await this.serviceFeeRepository.save(fixedRateServiceFee);
+      }
+      //   await this.serviceFeeRepository.save(fixedRateServiceFee);
+    }
+
+    // Update floating rate fee if provided
+    if (floatingRateFee !== undefined) {
+      // Fetch the existing floating-rate service fee entry
+      const existingFloatingRate = await this.serviceFeeRepository.findOne({
+        where: { type: "floating" },
+        order: { created_at: "DESC" },
+      });
+
+      if (existingFloatingRate) {
+        existingFloatingRate.fee = floatingRateFee;
+        await this.serviceFeeRepository.save(existingFloatingRate);
+      } else {
+        // If not found, create a new one as fallback
+        const floatingRateServiceFee = this.serviceFeeRepository.create({
+          type: "floating",
+          fee: floatingRateFee,
+        });
+        await this.serviceFeeRepository.save(floatingRateServiceFee);
+      }
+    }
+
+    // Return current configuration
+    return await this.getCurrentServiceFee();
   }
 
   /**
    * Set floating rate percentage
    */
-  async setFloatingRate(percentage: number): Promise<ServiceFee> {
+  async setFloatingRate(percentage: number): Promise<ServiceFeeConfig> {
     if (percentage < 0 || percentage > 100) {
       throw new Error("Floating rate percentage must be between 0 and 100");
     }
 
     return await this.updateServiceFee({
-      type: "floating",
-      fee: percentage,
+      floatingRateFee: percentage,
     });
   }
 
   /**
    * Set fixed rate percentage
    */
-  async setFixedRate(percentage: number): Promise<ServiceFee> {
+  async setFixedRate(percentage: number): Promise<ServiceFeeConfig> {
     if (percentage < 0 || percentage > 100) {
       throw new Error("Fixed rate percentage must be between 0 and 100");
     }
 
     return await this.updateServiceFee({
-      type: "fixed-rate",
-      fee: percentage,
+      fixedRateFee: percentage,
     });
   }
 
   /**
-   * Calculate service fee for a given amount
+   * Calculate service fee for a given amount based on exchange type
    */
-  async calculateServiceFee(amount: number): Promise<ServiceFeeCalculation> {
+  async calculateServiceFee(
+    amount: number,
+    exchangeType: "fixed-rate" | "floating"
+  ): Promise<ServiceFeeCalculation> {
     if (amount < 0) {
       throw new Error("Amount cannot be negative");
     }
 
-    const serviceFeeConfig = await this.getCurrentServiceFee();
-
-    if (!serviceFeeConfig) {
-      // Default to 0% floating rate if no configuration exists
-      return {
-        originalAmount: amount,
-        serviceFeeAmount: 0,
-        totalAmount: amount,
-        feeType: "floating",
-        feePercentage: 0,
-      };
+    if (!["fixed-rate", "floating"].includes(exchangeType)) {
+      throw new Error(
+        'Exchange type must be either "fixed-rate" or "floating"'
+      );
     }
 
-    let serviceFeeAmount: number;
+    const serviceFeeConfig = await this.getCurrentServiceFee();
 
-    // Both types use percentage calculation
-    serviceFeeAmount = (amount * serviceFeeConfig.fee) / 100;
+    const feePercentage =
+      exchangeType === "fixed-rate"
+        ? serviceFeeConfig.fixedRateFee
+        : serviceFeeConfig.floatingRateFee;
 
-    // Round to 2 decimal places
-    serviceFeeAmount = Math.round(serviceFeeAmount * 100) / 100;
+    // Calculate service fee amount
+    const serviceFeeAmount =
+      Math.round(((amount * feePercentage) / 100) * 100) / 100;
 
     return {
       originalAmount: amount,
       serviceFeeAmount,
       totalAmount: amount + serviceFeeAmount,
-      feeType: serviceFeeConfig.type,
-      feePercentage: serviceFeeConfig.fee,
+      feeType: exchangeType,
+      feePercentage,
     };
   }
 
@@ -171,7 +222,7 @@ export class ServiceFeeService {
    * Get service fee statistics
    */
   async getServiceFeeStats(): Promise<{
-    currentConfig: ServiceFee | null;
+    currentConfig: ServiceFeeConfig;
     totalConfigurations: number;
     configurationHistory: ServiceFee[];
   }> {
@@ -193,12 +244,12 @@ export class ServiceFeeService {
   }
 
   /**
-   * Reset to default configuration (0% floating rate)
+   * Reset to default configuration (0% for both rates)
    */
-  async resetToDefault(): Promise<ServiceFee> {
+  async resetToDefault(): Promise<ServiceFeeConfig> {
     return await this.updateServiceFee({
-      type: "floating",
-      fee: 0,
+      fixedRateFee: 0,
+      floatingRateFee: 0,
     });
   }
 
@@ -206,21 +257,25 @@ export class ServiceFeeService {
    * Validate service fee configuration
    */
   validateServiceFeeConfig(
-    type: "fixed-rate" | "floating",
-    fee: number
+    fixedRateFee: number,
+    floatingRateFee: number
   ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    if (!["fixed-rate", "floating"].includes(type)) {
-      errors.push('Type must be either "fixed-rate" or "floating"');
+    if (fixedRateFee < 0) {
+      errors.push("Fixed rate fee percentage cannot be negative");
     }
 
-    if (fee < 0) {
-      errors.push("Fee percentage cannot be negative");
+    if (fixedRateFee > 100) {
+      errors.push("Fixed rate fee percentage cannot exceed 100%");
     }
 
-    if (fee > 100) {
-      errors.push("Fee percentage cannot exceed 100%");
+    if (floatingRateFee < 0) {
+      errors.push("Floating rate fee percentage cannot be negative");
+    }
+
+    if (floatingRateFee > 100) {
+      errors.push("Floating rate fee percentage cannot exceed 100%");
     }
 
     return {
@@ -232,15 +287,24 @@ export class ServiceFeeService {
   /**
    * Calculate total amount including service fee
    */
-  async calculateTotalWithServiceFee(baseAmount: number): Promise<number> {
-    const calculation = await this.calculateServiceFee(baseAmount);
+  async calculateTotalWithServiceFee(
+    baseAmount: number,
+    exchangeType: "fixed-rate" | "floating"
+  ): Promise<number> {
+    const calculation = await this.calculateServiceFee(
+      baseAmount,
+      exchangeType
+    );
     return calculation.totalAmount;
   }
 
   /**
    * Calculate base amount from total (reverse calculation)
    */
-  async calculateBaseAmountFromTotal(totalAmount: number): Promise<{
+  async calculateBaseAmountFromTotal(
+    totalAmount: number,
+    exchangeType: "fixed-rate" | "floating"
+  ): Promise<{
     baseAmount: number;
     serviceFeeAmount: number;
     feeType: "fixed-rate" | "floating";
@@ -250,22 +314,23 @@ export class ServiceFeeService {
       throw new Error("Total amount cannot be negative");
     }
 
-    const serviceFeeConfig = await this.getCurrentServiceFee();
-
-    if (!serviceFeeConfig) {
-      return {
-        baseAmount: totalAmount,
-        serviceFeeAmount: 0,
-        feeType: "floating",
-        feePercentage: 0,
-      };
+    if (!["fixed-rate", "floating"].includes(exchangeType)) {
+      throw new Error(
+        'Exchange type must be either "fixed-rate" or "floating"'
+      );
     }
 
-    // Both types use percentage calculation
+    const serviceFeeConfig = await this.getCurrentServiceFee();
+
+    const feePercentage =
+      exchangeType === "fixed-rate"
+        ? serviceFeeConfig.fixedRateFee
+        : serviceFeeConfig.floatingRateFee;
+
     // totalAmount = baseAmount + (baseAmount * percentage / 100)
     // totalAmount = baseAmount * (1 + percentage / 100)
     // baseAmount = totalAmount / (1 + percentage / 100)
-    const baseAmount = totalAmount / (1 + serviceFeeConfig.fee / 100);
+    const baseAmount = totalAmount / (1 + feePercentage / 100);
     const serviceFeeAmount = totalAmount - baseAmount;
 
     // Round to 2 decimal places
@@ -275,31 +340,29 @@ export class ServiceFeeService {
     return {
       baseAmount: roundedBaseAmount,
       serviceFeeAmount: roundedServiceFeeAmount,
-      feeType: serviceFeeConfig.type,
-      feePercentage: serviceFeeConfig.fee,
+      feeType: exchangeType,
+      feePercentage,
     };
   }
 
   /**
-   * Get current service fee rate for display
+   * Get current service fee rates for display
    */
-  async getCurrentServiceFeeRate(): Promise<{
-    type: "fixed-rate" | "floating";
-    percentage: number;
-    displayText: string;
-  } | null> {
+  async getCurrentServiceFeeRates(): Promise<{
+    fixedRate: { percentage: number; displayText: string };
+    floatingRate: { percentage: number; displayText: string };
+  }> {
     const serviceFeeConfig = await this.getCurrentServiceFee();
 
-    if (!serviceFeeConfig) {
-      return null;
-    }
-
-    const displayText = `${serviceFeeConfig.fee}% (${serviceFeeConfig.type})`;
-
     return {
-      type: serviceFeeConfig.type,
-      percentage: serviceFeeConfig.fee,
-      displayText,
+      fixedRate: {
+        percentage: serviceFeeConfig.fixedRateFee,
+        displayText: `${serviceFeeConfig.fixedRateFee}% (fixed-rate)`,
+      },
+      floatingRate: {
+        percentage: serviceFeeConfig.floatingRateFee,
+        displayText: `${serviceFeeConfig.floatingRateFee}% (floating)`,
+      },
     };
   }
 }

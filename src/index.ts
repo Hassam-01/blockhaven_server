@@ -6,6 +6,8 @@ import { userRoutes } from "./routes/user.routes.js";
 import { faqRoutes } from "./routes/faq.routes.js";
 import { testimonialRoutes } from "./routes/testimonial.routes.js";
 import { serviceFeeRoutes } from "./routes/servicefee.routes.js";
+import { contactRoutes } from "./routes/contact.routes.js";
+import { emailService } from "./services/email.service.js";
 import cors from "@fastify/cors";
 
 config(); // Load .env
@@ -38,6 +40,7 @@ app.register(userRoutes, { prefix: "/api/users" });
 app.register(faqRoutes, { prefix: "/api/faqs" });
 app.register(testimonialRoutes, { prefix: "/api/testimonials" });
 app.register(serviceFeeRoutes, { prefix: "/api/service-fees" });
+app.register(contactRoutes, { prefix: "/api" });
 
 // Health check endpoint
 app.get('/health', async (request, reply) => {
@@ -53,7 +56,9 @@ app.get('/api', async (request, reply) => {
       '/api/users',
       '/api/faqs', 
       '/api/testimonials',
-      '/api/service-fees'
+      '/api/service-fees',
+      '/api/contact',
+      '/api/contacts'
     ]
   };
 });
@@ -63,6 +68,14 @@ const start = async () => {
   try {
     await AppDataSource.initialize();
     console.log("Database connected successfully!");
+
+    // Verify SMTP connection
+    const smtpConnected = await emailService.verifyConnection();
+    if (smtpConnected) {
+      console.log("SMTP connection verified successfully!");
+    } else {
+      console.warn("Warning: SMTP connection failed. Email functionality may not work.");
+    }
 
     const port = parseInt(process.env.PORT || "3000");
     const host = process.env.HOST || "localhost";
