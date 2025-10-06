@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { ServiceFeeController } from '../controller/servicefee.controller';
+import { ServiceFeeController } from '../controller/servicefee.controller.js';
 import { AuthMiddleware } from '../middleware/auth.middleware.js';
 
 export async function serviceFeeRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {

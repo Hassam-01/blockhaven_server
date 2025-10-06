@@ -1,6 +1,6 @@
 import { Repository } from 'typeorm';
-import { AppDataSource } from '../config/data-source';
-import { Faq } from '../entities/faq.entity';
+import { AppDataSource } from '../config/data-source.js';
+import { Faq } from '../entities/faq.entity.js';
 
 export interface CreateFaqData {
   question: string;
