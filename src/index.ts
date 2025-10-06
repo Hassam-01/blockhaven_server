@@ -2,6 +2,7 @@ import "reflect-metadata";
 import fastify from "fastify";
 import { config } from "dotenv";
 import { AppDataSource } from "./config/data-source.js";
+import { EnvValidation } from "./config/env-validation.js";
 import { userRoutes } from "./routes/user.routes.js";
 import { faqRoutes } from "./routes/faq.routes.js";
 import { testimonialRoutes } from "./routes/testimonial.routes.js";
@@ -13,6 +14,10 @@ import cors from "@fastify/cors";
 
 config(); // Load .env
 
+// Validate environment variables
+EnvValidation.validate();
+const envConfig = EnvValidation.getConfig();
+
 const app = fastify();
 
 // Enable CORS for cross-origin requests
@@ -22,13 +27,12 @@ const allowedOrigins = [
 ];
 
 // Add WEB_HOST if it exists
-console.log("process1: ", process.env.WEB_HOST)
 if (process.env.WEB_HOST) {
   allowedOrigins.push(process.env.WEB_HOST);
 }
 
 app.register(cors, {
-  origin: process.env.NODE_ENV === 'production' 
+  origin: envConfig.isProduction 
     ? (process.env.WEB_HOST || false)
     : allowedOrigins,
   credentials: true,
@@ -80,11 +84,12 @@ const start = async () => {
       console.warn("Warning: SMTP connection failed. Email functionality may not work.");
     }
 
-    const port = parseInt(process.env.PORT || "3000");
-    const host = process.env.HOST || "localhost";
+    const port = envConfig.PORT;
+    const host = envConfig.HOST;
 
     await app.listen({ port, host });
-    console.log(`Server is running on http://${host}:${port}`);
+    console.log(`🚀 Server is running on http://${host}:${port}`);
+    console.log(`📊 Environment: ${envConfig.NODE_ENV}`);
   } catch (error) {
     console.error("Error starting server:", error);
     process.exit(1);

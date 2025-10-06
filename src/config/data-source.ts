@@ -12,9 +12,9 @@ export const AppDataSource = new DataSource({
   host: process.env.DB_HOST || "localhost",
   port: parseInt(process.env.DB_PORT || "5432"),
   username: process.env.DB_USERNAME || "postgres",
-  password: process.env.DB_PASSWORD || "Murtajiz001",
+  password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME || "blockhaven",
   entities: [User, Testimonial, Faq, ServiceFee, Contact, Exchange],
-  synchronize: true,
-  logging: true,
+  synchronize: process.env.NODE_ENV !== 'production',
+  logging: process.env.NODE_ENV === 'development',
 });

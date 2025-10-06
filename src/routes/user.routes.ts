@@ -43,6 +43,37 @@ export async function userRoutes(fastify: FastifyInstance, options: FastifyPlugi
     return userController.login(request, reply);
   });
 
+  // POST /api/users/forgot-password - Request password reset
+  fastify.post('/forgot-password', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', format: 'email' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    return userController.forgotPassword(request, reply);
+  });
+
+  // POST /api/users/reset-password - Reset password with token
+  fastify.post('/reset-password', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['token', 'newPassword'],
+        properties: {
+          token: { type: 'string', minLength: 1 },
+          newPassword: { type: 'string', minLength: 6 }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    return userController.resetPassword(request, reply);
+  });
+
   // Protected routes (authentication required)
 
   // GET /api/users/profile - Get user profile

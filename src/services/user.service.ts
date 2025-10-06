@@ -1,8 +1,10 @@
 import { Repository } from "typeorm";
 import bcrypt from "bcryptjs";
 import jwt, { SignOptions } from "jsonwebtoken";
+import crypto from "crypto";
 import { AppDataSource } from "../config/data-source.js";
 import { User } from "../entities/user.entity.js";
+import { emailService } from "./email.service.js";
 
 export interface SignupData {
   email: string;
@@ -19,6 +21,11 @@ export interface LoginData {
 
 export interface UpdatePasswordData {
   currentPassword: string;
+  newPassword: string;
+}
+
+export interface ResetPasswordData {
+  token: string;
   newPassword: string;
 }
 
@@ -281,5 +288,109 @@ export class UserService {
 
     const { password_hash: _, ...userWithoutPassword } = updatedUser;
     return userWithoutPassword;
+  }
+
+  /**
+   * Generate password reset token and send email
+   */
+  async forgotPassword(email: string): Promise<void> {
+    // Find user by email
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      // Don't reveal if user exists or not for security
+      return;
+    }
+
+    // Check if user is active
+    if (!user.is_active) {
+      return;
+    }
+
+    // Generate random token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Set token expiration (1 hour from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    // Update user with reset token
+    await this.userRepository.update(user.id, {
+      reset_token: resetToken,
+      reset_token_expires: expiresAt
+    });
+
+    // Send password reset email
+    await emailService.sendPasswordResetEmail({
+      email: user.email,
+      firstName: user.first_name,
+      resetToken
+    });
+  }
+
+  /**
+   * Generate password reset token (without sending email - for internal use)
+   */
+  async generatePasswordResetToken(email: string): Promise<string> {
+    // Find user by email
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Check if user is active
+    if (!user.is_active) {
+      throw new Error("User account is inactive");
+    }
+
+    // Generate random token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Set token expiration (1 hour from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    // Update user with reset token
+    await this.userRepository.update(user.id, {
+      reset_token: resetToken,
+      reset_token_expires: expiresAt
+    });
+
+    return resetToken;
+  }
+
+  /**
+   * Reset password using token
+   */
+  async resetPassword(resetData: ResetPasswordData): Promise<void> {
+    const { token, newPassword } = resetData;
+
+    // Find user by reset token
+    const user = await this.userRepository.findOne({
+      where: { reset_token: token }
+    });
+
+    if (!user) {
+      throw new Error("Invalid or expired reset token");
+    }
+
+    // Check if token is expired
+    if (!user.reset_token_expires || user.reset_token_expires < new Date()) {
+      throw new Error("Reset token has expired");
+    }
+
+    // Validate new password
+    if (newPassword.length < 6) {
+      throw new Error("Password must be at least 6 characters long");
+    }
+
+    // Hash new password
+    const saltRounds = 12;
+    const password_hash = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user password and clear reset token
+    user.password_hash = password_hash;
+    user.reset_token = null;
+    user.reset_token_expires = null;
+    await this.userRepository.save(user);
   }
 }

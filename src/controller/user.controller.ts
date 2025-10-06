@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { UserService, SignupData, LoginData, UpdatePasswordData } from '../services/user.service.js';
+import { UserService, SignupData, LoginData, UpdatePasswordData, ResetPasswordData } from '../services/user.service.js';
 
 export class UserController {
   private userService: UserService;
@@ -230,6 +230,97 @@ export class UserController {
         });
       }
 
+      return reply.status(500).send({
+        error: 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Forgot password endpoint
+   */
+  async forgotPassword(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const { email } = request.body as { email: string };
+
+      // Basic validation
+      if (!email) {
+        return reply.status(400).send({
+          error: 'Email is required'
+        });
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return reply.status(400).send({
+          error: 'Invalid email format'
+        });
+      }
+
+      await this.userService.forgotPassword(email);
+
+      // Always return success for security (don't reveal if email exists)
+      return reply.status(200).send({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.'
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      console.error('Forgot password error:', errorMessage);
+      
+      return reply.status(500).send({
+        error: 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Reset password endpoint
+   */
+  async resetPassword(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const resetData = request.body as ResetPasswordData;
+
+      // Basic validation
+      if (!resetData.token || !resetData.newPassword) {
+        return reply.status(400).send({
+          error: 'Token and new password are required'
+        });
+      }
+
+      // Password validation
+      if (resetData.newPassword.length < 6) {
+        return reply.status(400).send({
+          error: 'Password must be at least 6 characters long'
+        });
+      }
+
+      await this.userService.resetPassword(resetData);
+
+      return reply.status(200).send({
+        success: true,
+        message: 'Password has been reset successfully'
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (errorMessage.includes('Invalid or expired reset token') || 
+          errorMessage.includes('Reset token has expired')) {
+        return reply.status(400).send({
+          error: errorMessage
+        });
+      }
+
+      if (errorMessage.includes('Password must be')) {
+        return reply.status(400).send({
+          error: errorMessage
+        });
+      }
+
+      console.error('Reset password error:', errorMessage);
+      
       return reply.status(500).send({
         error: 'Internal server error'
       });

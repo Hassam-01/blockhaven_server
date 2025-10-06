@@ -24,6 +24,12 @@ export class User {
   @Column({ type: 'boolean', default: true })
   is_active: boolean;
 
+  @Column({ type: 'varchar', nullable: true })
+  reset_token: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  reset_token_expires: Date | null;
+
   @CreateDateColumn()
   created_at: Date;
 

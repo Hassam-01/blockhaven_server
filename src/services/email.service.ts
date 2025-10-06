@@ -11,6 +11,12 @@ export interface ContactFormData {
     message: string;
 }
 
+export interface PasswordResetEmailData {
+    email: string;
+    firstName: string;
+    resetToken: string;
+}
+
 class EmailService {
     private transporter: nodemailer.Transporter;
 
@@ -102,6 +108,90 @@ Received on: ${new Date().toLocaleString()}
         } catch (error) {
             console.error("Error sending contact form email:", error);
             throw new Error("Failed to send contact form email");
+        }
+    }
+
+    async sendPasswordResetEmail(resetData: PasswordResetEmailData): Promise<void> {
+        try {
+            const { email, firstName, resetToken } = resetData;
+            const resetUrl = `${process.env.WEB_HOST || 'blockhaven.co'}/reset-password?token=${resetToken}`;
+
+            const htmlContent = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                    <h2 style="color: #333; text-align: center; margin-bottom: 30px;">Password Reset Request</h2>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+                        <p style="color: #495057; margin: 0 0 15px 0;">Hello ${firstName},</p>
+                        
+                        <p style="color: #495057; margin: 0 0 15px 0;">
+                            We received a request to reset your password for your BlockHeaven account. 
+                            If you didn't make this request, you can safely ignore this email.
+                        </p>
+                        
+                        <p style="color: #495057; margin: 0 0 20px 0;">
+                            To reset your password, click the button below:
+                        </p>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="${resetUrl}" 
+                               style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+                                Reset Password
+                            </a>
+                        </div>
+                        
+                        <p style="color: #6c757d; font-size: 14px; margin: 20px 0 0 0;">
+                            Or copy and paste this link in your browser:
+                            <br>
+                            <a href="${resetUrl}" style="color: #007bff; word-break: break-all;">${resetUrl}</a>
+                        </p>
+                        
+                        <p style="color: #dc3545; font-size: 14px; margin: 20px 0 0 0;">
+                            <strong>This link will expire in 1 hour.</strong>
+                        </p>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #dee2e6; padding-top: 20px; margin-top: 30px;">
+                        <p style="color: #6c757d; font-size: 12px; text-align: center; margin: 0;">
+                            If you're having trouble clicking the button, copy and paste the URL above into your web browser.
+                            <br><br>
+                            This email was sent from BlockHeaven. If you have any questions, please contact our support team.
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            const textContent = `
+                Password Reset Request
+                
+                Hello ${firstName},
+                
+                We received a request to reset your password for your BlockHeaven account.
+                If you didn't make this request, you can safely ignore this email.
+                
+                To reset your password, visit the following link:
+                ${resetUrl}
+                
+                This link will expire in 1 hour.
+                
+                If you're having trouble with the link, copy and paste it into your web browser.
+                
+                Best regards,
+                BlockHeaven Team
+            `;
+
+            const mailOptions = {
+                from: `"BlockHeaven Support" <${process.env.SMTP_USER}>`,
+                to: email,
+                subject: "Password Reset Request - BlockHeaven",
+                text: textContent,
+                html: htmlContent,
+            };
+
+            await this.transporter.sendMail(mailOptions);
+            console.log(`Password reset email sent successfully to ${email}`);
+        } catch (error) {
+            console.error("Error sending password reset email:", error);
+            throw new Error("Failed to send password reset email");
         }
     }
 
