@@ -321,3 +321,186 @@ All successful responses follow this format:
   "data": { ... }
 }
 ```
+
+## Exchange Endpoints (ChangeNow Integration)
+
+### Public Endpoints
+- `GET /api/exchanges/currencies` - Get available currencies for exchange
+- `GET /api/exchanges/estimate` - Get estimated exchange amount
+  - Query params: `fromCurrency`, `toCurrency`, `fromAmount`, `fromNetwork` (optional), `toNetwork` (optional), `flow` (optional), `type` (optional)
+- `POST /api/exchanges` - Create new exchange transaction (No authentication required)
+
+### Protected Endpoints (Authenticated Users)
+- `GET /api/exchanges` - Get all user's exchange transactions
+- `GET /api/exchanges/:id` - Get specific exchange by ID
+- `GET /api/exchanges/transaction/:transactionId` - Get exchange by ChangeNow transaction ID
+- `PUT /api/exchanges/:transactionId/status` - Update exchange status from ChangeNow
+
+### Exchange Transaction Creation Details
+
+#### POST /api/exchanges
+Create a new exchange transaction using ChangeNow API. This endpoint is public and doesn't require authentication.
+
+**Request Body:**
+```json
+{
+  "fromCurrency": "btc",
+  "fromNetwork": "btc",
+  "toCurrency": "eth",
+  "toNetwork": "eth",
+  "fromAmount": "0.003",
+  "address": "0x57f31ad4b64095347F87eDB1675566DAfF5EC886",
+  "flow": "standard",
+  "type": "direct",
+  "contactEmail": "user@example.com",
+  "refundAddress": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+}
+```
+
+**Required Fields:**
+- `fromCurrency` (string) - Source currency ticker (e.g., "btc")
+- `fromNetwork` (string) - Source currency network (e.g., "btc")
+- `toCurrency` (string) - Target currency ticker (e.g., "eth")
+- `toNetwork` (string) - Target currency network (e.g., "eth")
+- `address` (string) - Destination wallet address
+
+**Optional Fields:**
+- `fromAmount` (string) - Amount to exchange (for direct type)
+- `toAmount` (string) - Amount to receive (for reverse type)
+- `extraId` (string) - Extra ID for destination (if required)
+- `refundAddress` (string) - Refund address (recommended)
+- `refundExtraId` (string) - Refund extra ID (if needed)
+- `contactEmail` (string) - Contact email for notifications
+- `flow` (string) - Exchange flow type: "standard" or "fixed-rate" (default: "standard")
+- `type` (string) - Exchange direction: "direct" or "reverse" (default: "direct")
+- `rateId` (string) - Rate ID for fixed-rate exchanges
+
+**Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Exchange transaction created successfully",
+  "data": {
+    "id": "abc123def456",
+    "fromAmount": 0.003,
+    "toAmount": 0.045,
+    "flow": "standard",
+    "type": "direct",
+    "payinAddress": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
+    "payoutAddress": "0x57f31ad4b64095347F87eDB1675566DAfF5EC886",
+    "payinExtraId": null,
+    "payoutExtraId": null,
+    "fromCurrency": "btc",
+    "fromNetwork": "btc",
+    "toCurrency": "eth",
+    "toNetwork": "eth",
+    "refundAddress": null,
+    "refundExtraId": null,
+    "payoutExtraIdName": null,
+    "rateId": null
+  }
+}
+```
+
+#### GET /api/exchanges/estimate
+Get estimated exchange amount for currency pair.
+
+**Query Parameters:**
+- `fromCurrency` (required) - Source currency ticker
+- `toCurrency` (required) - Target currency ticker  
+- `fromAmount` (required) - Amount to exchange
+- `fromNetwork` (optional) - Source currency network
+- `toNetwork` (optional) - Target currency network
+- `flow` (optional) - Exchange flow: "standard" or "fixed-rate"
+- `type` (optional) - Direction: "direct" or "reverse"
+
+**Example Request:**
+```
+GET /api/exchanges/estimate?fromCurrency=btc&toCurrency=eth&fromAmount=0.01&flow=standard
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Estimated amount retrieved successfully",
+  "data": {
+    "estimatedAmount": "0.15",
+    "transactionSpeedForecast": "10-30",
+    "warningMessage": null
+  }
+}
+```
+
+#### GET /api/exchanges
+Get all exchange transactions for the authenticated user.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Exchanges retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "transactionId": "abc123def456",
+      "fromCurrency": "btc",
+      "toCurrency": "eth",
+      "fromAmount": 0.003,
+      "toAmount": 0.045,
+      "status": "finished",
+      "createdAt": "2025-10-05T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+### Exchange Status Types
+- `waiting` - Waiting for deposit
+- `confirming` - Confirming deposit
+- `exchanging` - Performing exchange
+- `sending` - Sending to destination
+- `finished` - Exchange completed
+- `failed` - Exchange failed
+- `refunded` - Funds refunded
+- `verifying` - Verifying transaction
+
+### Exchange Request Examples
+
+#### Create Exchange Transaction
+```bash
+curl -X POST http://localhost:3000/api/exchanges \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fromCurrency": "btc",
+    "fromNetwork": "btc",
+    "toCurrency": "eth",
+    "toNetwork": "eth",
+    "fromAmount": "0.003",
+    "address": "0x57f31ad4b64095347F87eDB1675566DAfF5EC886",
+    "flow": "standard"
+  }'
+```
+
+#### Get Exchange Estimation
+```bash
+curl -X GET "http://localhost:3000/api/exchanges/estimate?fromCurrency=btc&toCurrency=eth&fromAmount=0.01"
+```
+
+#### Get Available Currencies
+```bash
+curl -X GET http://localhost:3000/api/exchanges/currencies
+```
+
+#### Update Exchange Status
+```bash
+curl -X PUT http://localhost:3000/api/exchanges/abc123def456/status \
+  -H "Authorization: Bearer <your-token>"
+```
+
+### Environment Variables for ChangeNow
+Add these to your `.env` file:
+```
+# ChangeNow API Configuration
+CHANGENOW_API_KEY=your-changenow-api-key-here
+```
