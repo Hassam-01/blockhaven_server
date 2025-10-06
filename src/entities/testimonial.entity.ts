@@ -1,13 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
-import { User } from './user.entity.js';
 
 @Entity('testimonials')
 export class Testimonial {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => User, user => user.testimonials)
-  user: User;
+  @ManyToOne('User', 'testimonials')
+  user: any;
 
   @Column({type: "int"})
   rating: number;

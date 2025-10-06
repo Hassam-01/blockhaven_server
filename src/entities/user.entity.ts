@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, OneToMany } from 'typeorm';
-import { Testimonial } from './testimonial.entity.js';
 
 @Entity('users')
 export class User {
@@ -33,6 +32,6 @@ export class User {
   @CreateDateColumn()
   created_at: Date;
 
-  @OneToMany(() => Testimonial, testimonial => testimonial.user)
-  testimonials: Testimonial[];
+  @OneToMany('Testimonial', 'user')
+  testimonials: any[];
 }
