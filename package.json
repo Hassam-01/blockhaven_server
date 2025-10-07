@@ -15,7 +15,8 @@
     "docker:stop": "docker-compose down",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src/**/*.ts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "migrate": "tsx migrate.ts"
   },
   "keywords": [],
   "author": "",
