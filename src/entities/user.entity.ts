@@ -29,6 +29,18 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   reset_token_expires: Date | null;
 
+  @Column({ type: 'varchar', nullable: true })
+  two_factor_code: string | null;
+
+  @Column({ type: 'timestamp', nullable: true })
+  two_factor_expires: Date | null;
+
+  @Column({ type: 'boolean', default: false })
+  two_factor_enabled: boolean;
+
+  @Column({ type: 'varchar', nullable: true })
+  pending_login_token: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 

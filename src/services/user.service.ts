@@ -19,6 +19,17 @@ export interface LoginData {
   password: string;
 }
 
+export interface TwoFactorLoginData {
+  email: string;
+  password: string;
+}
+
+export interface VerifyTwoFactorData {
+  email: string;
+  code: string;
+  pendingToken: string;
+}
+
 export interface UpdatePasswordData {
   currentPassword: string;
   newPassword: string;
@@ -32,6 +43,12 @@ export interface ResetPasswordData {
 export interface AuthResponse {
   user: Omit<User, "password_hash">;
   token: string;
+}
+
+export interface TwoFactorResponse {
+  message: string;
+  requiresTwoFactor: boolean;
+  pendingToken: string;
 }
 
 export class UserService {
@@ -93,9 +110,9 @@ export class UserService {
   }
 
   /**
-   * User login
+   * User login with 2FA support
    */
-  async login(loginData: LoginData): Promise<AuthResponse> {
+  async login(loginData: LoginData): Promise<AuthResponse | TwoFactorResponse> {
     const { email, password } = loginData;
 
     // Find user by email
@@ -115,10 +132,37 @@ export class UserService {
       throw new Error("Invalid email or password");
     }
 
-    // Generate JWT token
-    const token = this.generateToken(user.id, user.email);
+    // Check if 2FA is enabled
+    if (user.two_factor_enabled) {
+      // Generate 2FA code and pending token
+      const twoFactorCode = this.generateTwoFactorCode();
+      const pendingToken = this.generatePendingToken();
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
 
-    // Return user without password hash
+      // Save 2FA code and pending token
+      await this.userRepository.update(user.id, {
+        two_factor_code: twoFactorCode,
+        two_factor_expires: expiresAt,
+        pending_login_token: pendingToken,
+      });
+
+      // Send 2FA code via email
+      await emailService.sendTwoFactorCode({
+        email: user.email,
+        firstName: user.first_name,
+        code: twoFactorCode,
+      });
+
+      return {
+        message: "Two-factor authentication code sent to your email",
+        requiresTwoFactor: true,
+        pendingToken,
+      };
+    }
+
+    // No 2FA required - proceed with normal login
+    const token = this.generateToken(user.id, user.email);
     const { password_hash: _, ...userWithoutPassword } = user;
 
     return {
@@ -392,5 +436,105 @@ export class UserService {
     user.reset_token = null;
     user.reset_token_expires = null;
     await this.userRepository.save(user);
+  }
+
+  /**
+   * Verify two-factor authentication code
+   */
+  async verifyTwoFactor(verifyData: VerifyTwoFactorData): Promise<AuthResponse> {
+    const { email, code, pendingToken } = verifyData;
+
+    // Find user by email and pending token
+    const user = await this.userRepository.findOne({
+      where: {
+        email,
+        pending_login_token: pendingToken,
+      },
+    });
+
+    if (!user) {
+      throw new Error("Invalid verification attempt");
+    }
+
+    // Check if 2FA code exists and matches
+    if (!user.two_factor_code || user.two_factor_code !== code) {
+      throw new Error("Invalid verification code");
+    }
+
+    // Check if 2FA code is expired
+    if (!user.two_factor_expires || user.two_factor_expires < new Date()) {
+      throw new Error("Verification code has expired");
+    }
+
+    // Clear 2FA data
+    await this.userRepository.update(user.id, {
+      two_factor_code: null,
+      two_factor_expires: null,
+      pending_login_token: null,
+    });
+
+    // Generate JWT token
+    const token = this.generateToken(user.id, user.email);
+
+    // Return user without password hash
+    const { password_hash: _, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      token,
+    };
+  }
+
+  /**
+   * Enable two-factor authentication for user
+   */
+  async enableTwoFactor(userId: string): Promise<{ message: string }> {
+    // Find user by ID
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Enable 2FA
+    await this.userRepository.update(userId, {
+      two_factor_enabled: true,
+    });
+
+    return { message: "Two-factor authentication enabled successfully" };
+  }
+
+  /**
+   * Disable two-factor authentication for user
+   */
+  async disableTwoFactor(userId: string): Promise<{ message: string }> {
+    // Find user by ID
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Disable 2FA and clear any pending codes
+    await this.userRepository.update(userId, {
+      two_factor_enabled: false,
+      two_factor_code: null,
+      two_factor_expires: null,
+      pending_login_token: null,
+    });
+
+    return { message: "Two-factor authentication disabled successfully" };
+  }
+
+  /**
+   * Generate a 6-digit two-factor authentication code
+   */
+  private generateTwoFactorCode(): string {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  /**
+   * Generate a pending login token for 2FA verification
+   */
+  private generatePendingToken(): string {
+    return crypto.randomBytes(32).toString('hex');
   }
 }

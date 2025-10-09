@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { UserService, SignupData, LoginData, UpdatePasswordData, ResetPasswordData } from '../services/user.service.js';
+import { UserService, SignupData, LoginData, UpdatePasswordData, ResetPasswordData, VerifyTwoFactorData } from '../services/user.service.js';
 
 export class UserController {
   private userService: UserService;
@@ -74,6 +74,16 @@ export class UserController {
       }
 
       const result = await this.userService.login(loginData);
+
+      // Check if 2FA is required
+      if ('requiresTwoFactor' in result && result.requiresTwoFactor) {
+        return reply.status(200).send({
+          success: true,
+          requiresTwoFactor: true,
+          message: result.message,
+          pendingToken: result.pendingToken
+        });
+      }
 
       return reply.status(200).send({
         success: true,
@@ -321,6 +331,113 @@ export class UserController {
 
       console.error('Reset password error:', errorMessage);
       
+      return reply.status(500).send({
+        error: 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Verify two-factor authentication code endpoint
+   */
+  async verifyTwoFactor(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const verifyData = request.body as VerifyTwoFactorData;
+
+      // Basic validation
+      if (!verifyData.email || !verifyData.code || !verifyData.pendingToken) {
+        return reply.status(400).send({
+          error: 'Email, verification code, and pending token are required'
+        });
+      }
+
+      const result = await this.userService.verifyTwoFactor(verifyData);
+
+      return reply.status(200).send({
+        success: true,
+        message: 'Two-factor authentication verified successfully',
+        data: result
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      // Handle specific error cases
+      if (errorMessage.includes('Invalid verification') || 
+          errorMessage.includes('Invalid verification code') ||
+          errorMessage.includes('Verification code has expired')) {
+        return reply.status(400).send({
+          error: errorMessage
+        });
+      }
+
+      return reply.status(500).send({
+        error: 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Enable two-factor authentication endpoint
+   */
+  async enableTwoFactor(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const userId = (request as any).user?.userId; // Assuming you have auth middleware that adds user to request
+
+      if (!userId) {
+        return reply.status(401).send({
+          error: 'Unauthorized: User ID not found'
+        });
+      }
+
+      const result = await this.userService.enableTwoFactor(userId);
+
+      return reply.status(200).send({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (errorMessage.includes('User not found')) {
+        return reply.status(404).send({
+          error: errorMessage
+        });
+      }
+
+      return reply.status(500).send({
+        error: 'Internal server error'
+      });
+    }
+  }
+
+  /**
+   * Disable two-factor authentication endpoint
+   */
+  async disableTwoFactor(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const userId = (request as any).user?.userId; // Assuming you have auth middleware that adds user to request
+
+      if (!userId) {
+        return reply.status(401).send({
+          error: 'Unauthorized: User ID not found'
+        });
+      }
+
+      const result = await this.userService.disableTwoFactor(userId);
+
+      return reply.status(200).send({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (errorMessage.includes('User not found')) {
+        return reply.status(404).send({
+          error: errorMessage
+        });
+      }
+
       return reply.status(500).send({
         error: 'Internal server error'
       });

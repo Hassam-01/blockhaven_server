@@ -95,12 +95,15 @@ When a contact form is submitted, an email notification is automatically sent to
 
 ### Public Endpoints
 - `POST /api/users/signup` - User registration
-- `POST /api/users/login` - User login
+- `POST /api/users/login` - User login (supports 2FA)
+- `POST /api/users/verify-2fa` - Verify two-factor authentication code
 
 ### Protected Endpoints (Authenticated Users)
 - `GET /api/users/profile` - Get user profile
 - `PUT /api/users/profile` - Update user profile
 - `PUT /api/users/password` - Update password
+- `PUT /api/users/enable-2fa` - Enable two-factor authentication
+- `PUT /api/users/disable-2fa` - Disable two-factor authentication
 
 ## FAQ Endpoints
 
@@ -189,6 +192,95 @@ curl -X POST http://localhost:3000/api/users/login \
     "email": "user@example.com",
     "password": "password123"
   }'
+```
+
+**Response (Normal Login - No 2FA):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "first_name": "John",
+      "last_name": "Doe",
+      "user_type": "customer",
+      "two_factor_enabled": false
+    },
+    "token": "jwt-token"
+  }
+}
+```
+
+**Response (2FA Required):**
+```json
+{
+  "success": true,
+  "requiresTwoFactor": true,
+  "message": "Two-factor authentication code sent to your email",
+  "pendingToken": "pending-token-for-verification"
+}
+```
+
+### Two-Factor Authentication Verification
+```bash
+curl -X POST http://localhost:3000/api/users/verify-2fa \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "user@example.com",
+    "code": "123456",
+    "pendingToken": "pending-token-received-from-login"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Two-factor authentication verified successfully",
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "first_name": "John",
+      "last_name": "Doe",
+      "user_type": "customer",
+      "two_factor_enabled": true
+    },
+    "token": "jwt-token"
+  }
+}
+```
+
+### Enable Two-Factor Authentication
+```bash
+curl -X PUT http://localhost:3000/api/users/enable-2fa \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Two-factor authentication enabled successfully"
+}
+```
+
+### Disable Two-Factor Authentication
+```bash
+curl -X PUT http://localhost:3000/api/users/disable-2fa \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-token>"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Two-factor authentication disabled successfully"
+}
 ```
 
 ### Create Testimonial

@@ -15,6 +15,10 @@ CREATE TABLE IF NOT EXISTS users (
     is_active BOOLEAN DEFAULT true,
     reset_token VARCHAR NULL,
     reset_token_expires TIMESTAMP NULL,
+    two_factor_code VARCHAR NULL,
+    two_factor_expires TIMESTAMP NULL,
+    two_factor_enabled BOOLEAN DEFAULT false,
+    pending_login_token VARCHAR NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

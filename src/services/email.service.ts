@@ -17,6 +17,12 @@ export interface PasswordResetEmailData {
     resetToken: string;
 }
 
+export interface TwoFactorEmailData {
+    email: string;
+    firstName: string;
+    code: string;
+}
+
 class EmailService {
     private transporter: nodemailer.Transporter;
 
@@ -192,6 +198,78 @@ Received on: ${new Date().toLocaleString()}
         } catch (error) {
             console.error("Error sending password reset email:", error);
             throw new Error("Failed to send password reset email");
+        }
+    }
+
+    async sendTwoFactorCode(twoFactorData: TwoFactorEmailData): Promise<void> {
+        try {
+            const { email, firstName, code } = twoFactorData;
+
+            const htmlContent = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <h1 style="color: #333; margin: 0;">BlockHeaven</h1>
+                        <h2 style="color: #666; margin: 10px 0; font-weight: normal;">Two-Factor Authentication</h2>
+                    </div>
+                    
+                    <div style="background-color: #f8f9fa; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px;">
+                        <h3 style="color: #333; margin: 0 0 20px 0;">Hello ${firstName},</h3>
+                        <p style="color: #666; margin: 0 0 20px 0; font-size: 16px;">
+                            You are attempting to log in to your BlockHeaven account. Please use the verification code below:
+                        </p>
+                        
+                        <div style="background-color: #007bff; color: white; padding: 20px; border-radius: 8px; margin: 20px 0; display: inline-block;">
+                            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px;">${code}</span>
+                        </div>
+                        
+                        <p style="color: #666; margin: 20px 0 0 0; font-size: 14px;">
+                            This code will expire in 10 minutes for security reasons.
+                        </p>
+                    </div>
+                    
+                    <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                        <p style="color: #856404; margin: 0; font-size: 14px;">
+                            <strong>Security Notice:</strong> If you did not request this code, please ignore this email and ensure your account is secure.
+                        </p>
+                    </div>
+                    
+                    <div style="text-align: center; color: #666; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px;">
+                        <p style="margin: 0;">This is an automated message from BlockHeaven. Please do not reply to this email.</p>
+                        <p style="margin: 5px 0 0 0;">© ${new Date().getFullYear()} BlockHeaven. All rights reserved.</p>
+                    </div>
+                </div>
+            `;
+
+            const textContent = `
+                BlockHeaven - Two-Factor Authentication
+
+                Hello ${firstName},
+
+                You are attempting to log in to your BlockHeaven account. Please use the verification code below:
+
+                Verification Code: ${code}
+
+                This code will expire in 10 minutes for security reasons.
+
+                Security Notice: If you did not request this code, please ignore this email and ensure your account is secure.
+
+                This is an automated message from BlockHeaven. Please do not reply to this email.
+                © ${new Date().getFullYear()} BlockHeaven. All rights reserved.
+            `;
+
+            const mailOptions = {
+                from: process.env.SMTP_FROM || process.env.SMTP_USER,
+                to: email,
+                subject: "Two-Factor Authentication Code - BlockHeaven",
+                text: textContent,
+                html: htmlContent,
+            };
+
+            await this.transporter.sendMail(mailOptions);
+            console.log(`Two-factor authentication code sent successfully to ${email}`);
+        } catch (error) {
+            console.error("Error sending two-factor authentication email:", error);
+            throw new Error("Failed to send two-factor authentication email");
         }
     }
 

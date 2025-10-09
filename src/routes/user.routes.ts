@@ -116,4 +116,35 @@ export async function userRoutes(fastify: FastifyInstance, options: FastifyPlugi
   }, async (request, reply) => {
     return userController.updatePassword(request, reply);
   });
+
+  // POST /api/users/verify-2fa - Verify two-factor authentication code
+  fastify.post('/verify-2fa', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['email', 'code', 'pendingToken'],
+        properties: {
+          email: { type: 'string', format: 'email' },
+          code: { type: 'string', minLength: 6, maxLength: 6 },
+          pendingToken: { type: 'string', minLength: 1 }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    return userController.verifyTwoFactor(request, reply);
+  });
+
+  // PUT /api/users/enable-2fa - Enable two-factor authentication
+  fastify.put('/enable-2fa', {
+    preHandler: [authMiddleware.authenticate.bind(authMiddleware)]
+  }, async (request, reply) => {
+    return userController.enableTwoFactor(request, reply);
+  });
+
+  // PUT /api/users/disable-2fa - Disable two-factor authentication
+  fastify.put('/disable-2fa', {
+    preHandler: [authMiddleware.authenticate.bind(authMiddleware)]
+  }, async (request, reply) => {
+    return userController.disableTwoFactor(request, reply);
+  });
 }
