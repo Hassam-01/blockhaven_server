@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { AppDataSource } from './src/config/data-source.js';
-import { User } from './src/entities/user.entity.js';
+import { AppDataSource } from './src/config/data-source';
+import { User } from './src/entities/user.entity';
 
 async function createAdminUser() {
   try {

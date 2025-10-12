@@ -35,7 +35,7 @@ class ExchangeService {
         let changeNowResponse: CreateExchangeResponse | null = null;
         
         try {
-            // Prepare ChangeNow API request
+            // Prepare Exchange API request
             const changeNowRequest: CreateExchangeRequest = {
                 fromCurrency: exchangeData.fromCurrency,
                 fromNetwork: exchangeData.fromNetwork,
@@ -56,25 +56,25 @@ class ExchangeService {
             if (exchangeData.rateId) changeNowRequest.rateId = exchangeData.rateId;
             if (exchangeData.userId) changeNowRequest.userId = exchangeData.userId;
 
-            console.log('Sending request to ChangeNow:', JSON.stringify(changeNowRequest, null, 2));
+            console.log('Sending request to Exchange API:', JSON.stringify(changeNowRequest, null, 2));
 
-            // Call ChangeNow API
+            // Call Exchange API
             changeNowResponse = await this.changeNowService.createExchange(
                 changeNowRequest,
                 exchangeData.userIp
             );
 
-            console.log('ChangeNow API Response received:', JSON.stringify(changeNowResponse, null, 2));
+            console.log('Exchange API Response received:', JSON.stringify(changeNowResponse, null, 2));
             console.log('Response type:', typeof changeNowResponse);
             console.log('Response keys:', Object.keys(changeNowResponse || {}));
 
             // Validate the response
             if (!changeNowResponse || !changeNowResponse.id) {
-                throw new Error('Invalid response from ChangeNow API - missing transaction ID');
+                throw new Error('Invalid response from Exchange API - missing transaction ID');
             }
 
             if (!changeNowResponse.payinAddress) {
-                throw new Error('Invalid response from ChangeNow API - missing payin address');
+                throw new Error('Invalid response from Exchange API - missing payin address');
             }
 
             // Save to database (optional - don't let DB errors affect the response)
@@ -105,7 +105,7 @@ class ExchangeService {
                 console.log('Exchange saved to database successfully');
             } catch (dbError: any) {
                 console.error('Database save error (non-critical):', dbError.message);
-                // Don't throw - continue with ChangeNow response
+                // Don't throw - continue with Exchange API response
             }
             
             // Return the ChangeNow response directly
@@ -114,7 +114,7 @@ class ExchangeService {
         } catch (error: any) {
             console.error('Exchange Service Error:', error.message);
             if (changeNowResponse) {
-                console.error('ChangeNow Response received:', JSON.stringify(changeNowResponse, null, 2));
+                console.error('Exchange API Response received:', JSON.stringify(changeNowResponse, null, 2));
             }
             console.error('Full error details:', error);
             throw new Error(`Failed to create exchange: ${error.message}`);
