@@ -257,7 +257,17 @@ class ChangeNowService {
                 { headers: this.getHeaders() }
             );
 
-            return response.data;
+            // Replace ChangeNOW image URLs with our own proxied URLs
+            const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+            const filteredData = response.data.map((currency: any) => {
+                if (currency.image && currency.image.includes('changenow.io')) {
+                    // Replace with our own image proxy URL
+                    currency.image = `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`;
+                }
+                return currency;
+            });
+
+            return filteredData;
         } catch (error: any) {
             console.error('Error fetching currencies:', error.response?.data || error.message);
             throw error;
@@ -693,7 +703,18 @@ class ChangeNowService {
     async getAvailableCurrenciesLegacy(): Promise<any[]> {
         try {
             const response = await axios.get(`${this.baseUrl}/exchange/currencies`);
-            return response.data;
+            
+            // Replace ChangeNOW image URLs with our own proxied URLs
+            const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
+            const filteredData = response.data.map((currency: any) => {
+                if (currency.image && currency.image.includes('changenow.io')) {
+                    // Replace with our own image proxy URL
+                    currency.image = `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`;
+                }
+                return currency;
+            });
+            
+            return filteredData;
         } catch (error: any) {
             console.error('Exchange API Error:', error.response?.data || error.message);
             throw new Error('Failed to get available currencies');

@@ -10,6 +10,7 @@ import { serviceFeeRoutes } from "./routes/servicefee.routes.js";
 import { contactRoutes } from "./routes/contact.routes.js";
 import { exchangeRoutes } from "./routes/exchange.routes.js";
 import { changeNowRoutes } from "./routes/changenow.routes.js";
+import { imageProxyRoutes } from "./routes/image-proxy.routes.js";
 import { emailService } from "./services/email.service.js";
 import cors from "@fastify/cors";
 
@@ -49,6 +50,7 @@ app.register(serviceFeeRoutes, { prefix: "/api/service-fees" });
 app.register(contactRoutes, { prefix: "/api" });
 app.register(exchangeRoutes, { prefix: "/api/exchanges" });
 app.register(changeNowRoutes, { prefix: "/api/blockhaven" });
+app.register(imageProxyRoutes, { prefix: "/api/blockhaven" });
 
 // Health check endpoint
 app.get('/health', async (request, reply) => {
