@@ -156,7 +156,7 @@ export class ChangeNowController {
             console.error('Error in getEstimatedExchangeAmount:', error);
             return reply.status(500).send({
                 success: false,
-                error: error.message || 'Failed to fetch estimated exchange amount'
+                error: error.data || 'Failed to fetch estimated exchange amount'
             });
         }
     }
