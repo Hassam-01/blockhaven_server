@@ -118,3 +118,23 @@ BEGIN
     RAISE NOTICE 'Tables created: users, testimonials, faqs, service_fees, contacts, exchanges';
     RAISE NOTICE 'Default service fees inserted';
 END $$;
+
+-- Create trigger function for updated_at
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Add triggers
+CREATE TRIGGER update_currencies_updated_at 
+    BEFORE UPDATE ON currencies 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_pairs_updated_at 
+    BEFORE UPDATE ON exchange_pairs 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();

@@ -37,6 +37,35 @@ const migrate = async () => {
     
     console.log("✅ Database schema synchronized successfully!");
 
+    // Create triggers for updated_at
+    console.log("\n🔧 Creating updated_at triggers...");
+    
+    await queryRunner.query(`
+      CREATE OR REPLACE FUNCTION update_updated_at_column()
+      RETURNS TRIGGER AS $$
+      BEGIN
+          NEW.updated_at = NOW();
+          RETURN NEW;
+      END;
+      $$ language 'plpgsql';
+    `);
+
+    await queryRunner.query(`
+      CREATE TRIGGER update_currencies_updated_at 
+          BEFORE UPDATE ON currencies 
+          FOR EACH ROW 
+          EXECUTE FUNCTION update_updated_at_column();
+    `);
+
+    await queryRunner.query(`
+      CREATE TRIGGER update_pairs_updated_at 
+          BEFORE UPDATE ON exchange_pairs 
+          FOR EACH ROW 
+          EXECUTE FUNCTION update_updated_at_column();
+    `);
+
+    console.log("✅ Triggers created successfully!");
+
     // List all tables after migration
     console.log("\n📋 Tables after migration:");
     const tablesAfter = await queryRunner.getTables();

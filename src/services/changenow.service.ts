@@ -1,757 +1,852 @@
-import axios, { AxiosResponse } from 'axios';
-import { config } from 'dotenv';
+import axios, { AxiosResponse } from "axios";
+import { config } from "dotenv";
 
 config();
 
 // ChangeNow API Types
 export interface CurrencyOptions {
-    active?: boolean;
-    flow?: "standard" | "fixed-rate";
-    buy?: boolean;
-    sell?: boolean;
+  active?: boolean;
+  flow?: "standard" | "fixed-rate";
+  buy?: boolean;
+  sell?: boolean;
 }
 
 export interface EstimatedAmountOptions {
-    fromAmount?: number;
-    toAmount?: number;
-    fromNetwork?: string;
-    toNetwork?: string;
-    flow?: "standard" | "fixed-rate";
-    type?: "direct" | "reverse";
-    useRateId?: boolean;
-    isTopUp?: boolean;
+  fromAmount?: number;
+  toAmount?: number;
+  fromNetwork?: string;
+  toNetwork?: string;
+  flow?: "standard" | "fixed-rate";
+  type?: "direct" | "reverse";
+  useRateId?: boolean;
+  isTopUp?: boolean;
 }
 
 export interface MinAmountOptions {
-    fromNetwork?: string;
-    toNetwork?: string;
-    flow?: "standard" | "fixed-rate";
+  fromNetwork?: string;
+  toNetwork?: string;
+  flow?: "standard" | "fixed-rate";
 }
 
 export interface ExchangeRangeOptions {
-    fromNetwork?: string;
-    toNetwork?: string;
-    flow?: "standard" | "fixed-rate";
+  fromNetwork?: string;
+  toNetwork?: string;
+  flow?: "standard" | "fixed-rate";
 }
 
 export interface NetworkFeeOptions {
-    fromNetwork?: string;
-    toNetwork?: string;
-    convertedCurrency?: string;
-    convertedNetwork?: string;
+  fromNetwork?: string;
+  toNetwork?: string;
+  convertedCurrency?: string;
+  convertedNetwork?: string;
 }
 
 export interface FiatMarketInfoOptions {
-    fromNetwork?: string;
-    toNetwork?: string;
+  fromNetwork?: string;
+  toNetwork?: string;
 }
 
 export interface FiatEstimateRequest {
-    from_currency: string;
-    from_amount: number;
-    to_currency: string;
-    from_network?: string;
-    to_network?: string;
-    deposit_type?: string;
-    payout_type?: string;
+  from_currency: string;
+  from_amount: number;
+  to_currency: string;
+  from_network?: string;
+  to_network?: string;
+  deposit_type?: string;
+  payout_type?: string;
 }
 
 export interface FiatTransactionRequest {
-    from_currency: string;
-    from_amount: number;
-    to_currency: string;
-    to_amount: number;
-    to_address: string;
-    from_network?: string;
-    to_network?: string;
-    deposit_type?: string;
-    payout_type?: string;
-    user_refund_address?: string;
-    user_refund_extra_id?: string;
+  from_currency: string;
+  from_amount: number;
+  to_currency: string;
+  to_amount: number;
+  to_address: string;
+  from_network?: string;
+  to_network?: string;
+  deposit_type?: string;
+  payout_type?: string;
+  user_refund_address?: string;
+  user_refund_extra_id?: string;
 }
 
 export interface RefundExchangeRequest {
-    id: string;
-    address: string;
-    extraId?: string;
+  id: string;
+  address: string;
+  extraId?: string;
 }
 
 export interface ContinueExchangeRequest {
-    id: string;
+  id: string;
 }
 
 export interface CreateExchangeRequest {
-    fromCurrency: string;
-    fromNetwork: string;
-    toCurrency: string;
-    toNetwork: string;
-    fromAmount?: string;
-    toAmount?: string;
-    address: string;
-    extraId?: string;
-    refundAddress?: string;
-    refundExtraId?: string;
-    userId?: string;
-    payload?: Record<string, any>;
-    contactEmail?: string;
-    flow: 'standard' | 'fixed-rate';
-    type?: 'direct' | 'reverse';
-    rateId?: string;
+  fromCurrency: string;
+  fromNetwork: string;
+  toCurrency: string;
+  toNetwork: string;
+  fromAmount?: string;
+  toAmount?: string;
+  address: string;
+  extraId?: string;
+  refundAddress?: string;
+  refundExtraId?: string;
+  userId?: string;
+  payload?: Record<string, any>;
+  contactEmail?: string;
+  flow: "standard" | "fixed-rate";
+  type?: "direct" | "reverse";
+  rateId?: string;
 }
 
 export interface CreateExchangeResponse {
-    id: string;
-    fromAmount: number;
-    toAmount: number;
-    flow: 'standard' | 'fixed-rate';
-    type: 'direct' | 'reverse';
-    payinAddress: string;
-    payoutAddress: string;
-    payinExtraId?: string;
-    payoutExtraId?: string;
-    fromCurrency: string;
-    fromNetwork: string;
-    toCurrency: string;
-    toNetwork: string;
-    refundAddress?: string;
-    refundExtraId?: string;
-    payoutExtraIdName?: string;
-    rateId?: string;
+  id: string;
+  fromAmount: number;
+  toAmount: number;
+  flow: "standard" | "fixed-rate";
+  type: "direct" | "reverse";
+  payinAddress: string;
+  payoutAddress: string;
+  payinExtraId?: string;
+  payoutExtraId?: string;
+  fromCurrency: string;
+  fromNetwork: string;
+  toCurrency: string;
+  toNetwork: string;
+  refundAddress?: string;
+  refundExtraId?: string;
+  payoutExtraIdName?: string;
+  rateId?: string;
 }
 
 export interface ExchangeStatusResponse {
-    id: string;
-    status: 'waiting' | 'confirming' | 'exchanging' | 'sending' | 'finished' | 'failed' | 'refunded' | 'verifying';
-    fromAmount: number;
-    toAmount: number;
-    fromCurrency: string;
-    toCurrency: string;
-    fromNetwork: string;
-    toNetwork: string;
-    payinAddress: string;
-    payoutAddress: string;
-    payinHash?: string;
-    payoutHash?: string;
-    refundHash?: string;
-    validUntil?: string;
-    payinExtraId?: string;
-    payoutExtraId?: string;
-    refundAddress?: string;
-    refundExtraId?: string;
+  id: string;
+  status:
+    | "waiting"
+    | "confirming"
+    | "exchanging"
+    | "sending"
+    | "finished"
+    | "failed"
+    | "refunded"
+    | "verifying";
+  fromAmount: number;
+  toAmount: number;
+  fromCurrency: string;
+  toCurrency: string;
+  fromNetwork: string;
+  toNetwork: string;
+  payinAddress: string;
+  payoutAddress: string;
+  payinHash?: string;
+  payoutHash?: string;
+  refundHash?: string;
+  validUntil?: string;
+  payinExtraId?: string;
+  payoutExtraId?: string;
+  refundAddress?: string;
+  refundExtraId?: string;
 }
 
 export interface ExchangeApiError {
-    error: string;
-    message: string;
+  error: string;
+  message: string;
 }
 
 class ChangeNowService {
-    private readonly baseUrl = 'https://api.changenow.io/v2';
-    private readonly apiKey: string;
+  private readonly baseUrl = "https://api.changenow.io/v2";
+  private readonly apiKey: string;
+  private readonly XapiKey: string;
+  constructor() {
+    this.apiKey = process.env.CHANGENOW_API_KEY || "";
+    this.XapiKey = process.env.CHANGENOW_X_API_KEY || "";
+    if (!this.apiKey) {
+      console.warn(
+        "Warning: CHANGENOW_API_KEY not found in environment variables"
+      );
+    }
+  }
 
-    constructor() {
-        this.apiKey = process.env.CHANGENOW_API_KEY || '';
-        if (!this.apiKey) {
-            console.warn('Warning: CHANGENOW_API_KEY not found in environment variables');
-        }
+  private getHeaders(useApiKey: boolean = false): Record<string, string> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (useApiKey) {
+      headers["x-api-key"] = this.XapiKey;
+      headers["x-changenow-api-key"] = this.apiKey;
+    } else {
+      headers["x-changenow-api-key"] = this.apiKey;
     }
 
-    private getHeaders(useApiKey: boolean = false): Record<string, string> {
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-        };
+    return headers;
+  }
 
-        if (useApiKey) {
-            headers['x-api-key'] = this.apiKey;
-        } else {
-            headers['x-changenow-api-key'] = this.apiKey;
-        }
+  // ========================= EXISTING METHODS =========================
 
-        return headers;
+  async createExchange(
+    exchangeData: CreateExchangeRequest,
+    userIp?: string
+  ): Promise<CreateExchangeResponse> {
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-changenow-api-key": this.apiKey,
+      };
+
+      if (userIp) {
+        headers["x-forwarded-for"] = userIp;
+      }
+      const response = await axios.post<CreateExchangeResponse>(
+        `${this.baseUrl}/exchange`,
+        exchangeData,
+        { headers }
+      );
+      if (!response.data) {
+        throw new Error("Empty response from Exchange API");
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Exchange API Error:",
+        error.response?.data || error.message
+      );
+      console.error("Exchange API Status:", error.response?.status);
+      console.error("Exchange API Headers:", error.response?.headers);
+
+      if (axios.isAxiosError(error) && error.response?.data) {
+        const apiError = error.response.data as ExchangeApiError;
+        throw new Error(
+          `Exchange API Error: ${apiError.message || apiError.error}`
+        );
+      }
+
+      throw new Error("Failed to create exchange transaction");
     }
+  }
 
-    // ========================= EXISTING METHODS =========================
+  async getExchangeStatus(
+    transactionId: string
+  ): Promise<ExchangeStatusResponse> {
+    try {
+      const headers = {
+        "x-changenow-api-key": this.apiKey,
+      };
 
-    async createExchange(exchangeData: CreateExchangeRequest, userIp?: string): Promise<CreateExchangeResponse> {
-        try {
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json',
-                'x-changenow-api-key': this.apiKey,
-            };
+      const response = await axios.get<ExchangeStatusResponse>(
+        `${this.baseUrl}/exchange/by-id/${transactionId}`,
+        { headers }
+      );
 
-            if (userIp) {
-                headers['x-forwarded-for'] = userIp;
-            }
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Exchange API Error:",
+        error.response?.data || error.message
+      );
 
-            console.log('Exchange API Request Headers:', headers);
-            console.log('Exchange API Request Body:', JSON.stringify(exchangeData, null, 2));
+      if (axios.isAxiosError(error) && error.response?.data) {
+        const apiError = error.response.data as ExchangeApiError;
+        throw new Error(
+          `Exchange API Error: ${apiError.message || apiError.error}`
+        );
+      }
 
-            const response = await axios.post<CreateExchangeResponse>(
-                `${this.baseUrl}/exchange`,
-                exchangeData,
-                { headers }
-            );
-
-            console.log('Exchange API Response Status:', response.status);
-            console.log('Exchange API Response Headers:', response.headers);
-            console.log('Exchange API Response Data:', JSON.stringify(response.data, null, 2));
-
-            if (!response.data) {
-                throw new Error('Empty response from Exchange API');
-            }
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Exchange API Error:', error.response?.data || error.message);
-            console.error('Exchange API Status:', error.response?.status);
-            console.error('Exchange API Headers:', error.response?.headers);
-            
-            if (axios.isAxiosError(error) && error.response?.data) {
-                const apiError = error.response.data as ExchangeApiError;
-                throw new Error(`Exchange API Error: ${apiError.message || apiError.error}`);
-            }
-            
-            throw new Error('Failed to create exchange transaction');
-        }
+      throw new Error("Failed to get exchange status");
     }
+  }
 
-    async getExchangeStatus(transactionId: string): Promise<ExchangeStatusResponse> {
-        try {
-            const headers = {
-                'x-changenow-api-key': this.apiKey,
-            };
+  // ========================= NEW METHODS FROM SAMPLE =========================
 
-            const response = await axios.get<ExchangeStatusResponse>(
-                `${this.baseUrl}/exchange/by-id/${transactionId}`,
-                { headers }
-            );
+  /**
+   * 1. Get available currencies
+   */
+  async getAvailableCurrencies(options: CurrencyOptions = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (options.active !== undefined)
+        params.append("active", String(options.active));
+      if (options.flow) params.append("flow", options.flow);
+      if (options.buy !== undefined) params.append("buy", String(options.buy));
+      if (options.sell !== undefined)
+        params.append("sell", String(options.sell));
 
-            return response.data;
-        } catch (error: any) {
-            console.error('Exchange API Error:', error.response?.data || error.message);
-            
-            if (axios.isAxiosError(error) && error.response?.data) {
-                const apiError = error.response.data as ExchangeApiError;
-                throw new Error(`Exchange API Error: ${apiError.message || apiError.error}`);
-            }
-            
-            throw new Error('Failed to get exchange status');
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/exchange/currencies?${params.toString()}`,
+        { headers: this.getHeaders() }
+      );
+
+      // Replace ChangeNOW image URLs with our own proxied URLs
+      const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";
+      const filteredData = response.data.map((currency: any) => {
+        if (currency.image && currency.image.includes("changenow.io")) {
+          // Replace with our own image proxy URL
+          currency.image = `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`;
         }
+        return currency;
+      });
+
+      return filteredData;
+    } catch (error: any) {
+      console.error(
+        "Error fetching currencies:",
+        error.response?.data || error.message
+      );
+      throw error;
     }
+  }
 
-    // ========================= NEW METHODS FROM SAMPLE =========================
+  /**
+   * 2. Get available pairs
+   */
+  async getAvailablePairs(
+    fromCurrency?: string,
+    toCurrency?: string,
+    fromNetwork?: string,
+    toNetwork?: string,
+    flow?: "standard" | "fixed-rate"
+  ) {
+    try {
+      const params = new URLSearchParams();
+      if (fromCurrency) params.append("fromCurrency", fromCurrency);
+      if (toCurrency) params.append("toCurrency", toCurrency);
+      if (fromNetwork) params.append("fromNetwork", fromNetwork);
+      if (toNetwork) params.append("toNetwork", toNetwork);
+      if (flow) params.append("flow", flow);
 
-    /**
-     * 1. Get available currencies
-     */
-    async getAvailableCurrencies(options: CurrencyOptions = {}) {
-        try {
-            const params = new URLSearchParams();
-            if (options.active !== undefined) params.append('active', String(options.active));
-            if (options.flow) params.append('flow', options.flow);
-            if (options.buy !== undefined) params.append('buy', String(options.buy));
-            if (options.sell !== undefined) params.append('sell', String(options.sell));
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/exchange/available-pairs?${params.toString()}`,
+        { headers: this.getHeaders(true) }
+      );
 
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/exchange/currencies?${params.toString()}`,
-                { headers: this.getHeaders() }
-            );
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching available pairs:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
 
-            // Replace ChangeNOW image URLs with our own proxied URLs
-            const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
-            const filteredData = response.data.map((currency: any) => {
-                if (currency.image && currency.image.includes('changenow.io')) {
-                    // Replace with our own image proxy URL
-                    currency.image = `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`;
-                }
-                return currency;
-            });
+  /**
+   * 3. Get minimal exchange amount
+   */
+  async getMinimalExchangeAmount(
+    fromCurrency: string,
+    toCurrency: string,
+    options?: MinAmountOptions
+  ) {
+    try {
+      const params = new URLSearchParams({
+        fromCurrency,
+        toCurrency,
+      });
 
-            return filteredData;
-        } catch (error: any) {
-            console.error('Error fetching currencies:', error.response?.data || error.message);
-            throw error;
+      if (options?.fromNetwork)
+        params.append("fromNetwork", options.fromNetwork);
+      if (options?.toNetwork) params.append("toNetwork", options.toNetwork);
+      if (options?.flow) params.append("flow", options.flow);
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/exchange/min-amount?${params.toString()}`,
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching minimal exchange amount:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 4. Get estimated exchange amount
+   */
+  async getEstimatedExchangeAmount(
+    fromCurrency: string,
+    toCurrency: string,
+    options: EstimatedAmountOptions
+  ) {
+    try {
+      // Automatically set useRateId to true for fixed-rate flow to get rateId
+      const modifiedOptions = {
+        ...options,
+        useRateId: options.flow === "fixed-rate" ? true : options.useRateId,
+      };
+
+      const params = new URLSearchParams({ fromCurrency, toCurrency });
+      Object.entries(modifiedOptions).forEach(
+        ([k, v]) => v !== undefined && params.append(k, String(v))
+      );
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/exchange/estimated-amount?${params.toString()}`,
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching estimated exchange amount:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 5. Get transaction status by ID
+   */
+  async getTransactionStatus(transactionId: string) {
+    try {
+      const params = new URLSearchParams({ id: transactionId });
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/exchange/by-id?${params.toString()}`,
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching transaction status:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 6. Get user addresses
+   */
+  async getUserAddresses(name: string, apiKey?: string) {
+    try {
+      const headers = apiKey
+        ? { "x-changenow-api-key": apiKey }
+        : this.getHeaders();
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/addresses-by-name?name=${encodeURIComponent(name)}`,
+        { headers }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching user addresses:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 7. Get estimated network fee
+   */
+  async getEstimatedNetworkFee(
+    fromCurrency: string,
+    toCurrency: string,
+    fromAmount: number,
+    options?: NetworkFeeOptions
+  ) {
+    try {
+      const params = new URLSearchParams({
+        fromCurrency,
+        toCurrency,
+        fromAmount: String(fromAmount),
+      });
+
+      if (options?.fromNetwork)
+        params.append("fromNetwork", options.fromNetwork);
+      if (options?.toNetwork) params.append("toNetwork", options.toNetwork);
+      if (options?.convertedCurrency)
+        params.append("convertedCurrency", options.convertedCurrency);
+      if (options?.convertedNetwork)
+        params.append("convertedNetwork", options.convertedNetwork);
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/exchange/network-fee?${params.toString()}`,
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching network fee estimate:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 8. Get exchange range
+   */
+  async getExchangeRange(
+    fromCurrency: string,
+    toCurrency: string,
+    options?: ExchangeRangeOptions
+  ) {
+    try {
+      const params = new URLSearchParams({
+        fromCurrency,
+        toCurrency,
+      });
+
+      if (options?.fromNetwork)
+        params.append("fromNetwork", options.fromNetwork);
+      if (options?.toNetwork) params.append("toNetwork", options.toNetwork);
+      if (options?.flow) params.append("flow", options.flow);
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/exchange/range?${params.toString()}`,
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching exchange range:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 9. Create fiat transaction
+   */
+  async createFiatTransaction(request: FiatTransactionRequest) {
+    try {
+      const response: AxiosResponse = await axios.post(
+        `${this.baseUrl}/fiat-transaction`,
+        request,
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error creating fiat transaction:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 10. Get fiat market info
+   */
+  async getFiatMarketInfo(
+    fromCurrency: string,
+    toCurrency: string,
+    options?: FiatMarketInfoOptions
+  ) {
+    try {
+      const fromCurrencyWithNetwork = options?.fromNetwork
+        ? `${fromCurrency}_${options.fromNetwork}`
+        : fromCurrency;
+      const toCurrencyWithNetwork = options?.toNetwork
+        ? `${toCurrency}_${options.toNetwork}`
+        : toCurrency;
+
+      const pair = `${fromCurrencyWithNetwork}-${toCurrencyWithNetwork}`;
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/fiat-market-info/min-max-range/${pair}`,
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching fiat market info:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 11. Get fiat health check
+   */
+  async getFiatHealthCheck() {
+    try {
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/fiat-status`,
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching fiat health check:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 12. Get exchange actions
+   */
+  async getExchangeActions(transactionId: string) {
+    try {
+      const params = new URLSearchParams({ id: transactionId });
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/exchange/actions?${params.toString()}`,
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching exchange actions:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 13. Refund exchange
+   */
+  async refundExchange(request: RefundExchangeRequest) {
+    try {
+      const response: AxiosResponse = await axios.post(
+        `${this.baseUrl}/exchange/refund`,
+        {
+          id: request.id,
+          address: request.address,
+          ...(request.extraId && { extraId: request.extraId }),
+        },
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error refunding exchange:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 14. Continue exchange
+   */
+  async continueExchange(request: ContinueExchangeRequest) {
+    try {
+      const response: AxiosResponse = await axios.post(
+        `${this.baseUrl}/exchange/continue`,
+        { id: request.id },
+        { headers: this.getHeaders() }
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error continuing exchange:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 15. Get fiat transaction status (uses x-api-key)
+   */
+  async getFiatTransactionStatus(transactionId: string) {
+    try {
+      const params = new URLSearchParams({ id: transactionId });
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/fiat-status?${params.toString()}`,
+        { headers: this.getHeaders(true) } // Use x-api-key
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching fiat transaction status:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 16. Get fiat estimate (uses x-api-key)
+   */
+  async getFiatEstimate(request: FiatEstimateRequest) {
+    try {
+      const params = new URLSearchParams();
+      params.append("from_currency", request.from_currency);
+      params.append("from_amount", request.from_amount.toString());
+      params.append("to_currency", request.to_currency);
+
+      if (request.from_network)
+        params.append("from_network", request.from_network);
+      if (request.to_network) params.append("to_network", request.to_network);
+      if (request.deposit_type)
+        params.append("deposit_type", request.deposit_type);
+      if (request.payout_type)
+        params.append("payout_type", request.payout_type);
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/fiat-estimate?${params.toString()}`,
+        { headers: this.getHeaders(true) } // Use x-api-key
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching fiat estimate:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  // ========================= ADDITIONAL ENDPOINTS FROM SAMPLE2 =========================
+
+  /**
+   * 17. Validate address
+   */
+  async validateAddress(currency: string, address: string) {
+    try {
+      const params = new URLSearchParams({
+        currency,
+        address,
+      });
+
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/validate/address?${params.toString()}`
+        // Note: This endpoint doesn't require API key according to documentation
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error validating address:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 18. Get fiat currencies
+   */
+  async getFiatCurrencies() {
+    try {
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/fiat-currencies/fiat`
+        // Note: This endpoint doesn't require API key according to documentation
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching fiat currencies:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 19. Get crypto currencies for fiat
+   */
+  async getCryptoCurrenciesForFiat() {
+    try {
+      const response: AxiosResponse = await axios.get(
+        `${this.baseUrl}/fiat-currencies/crypto`
+        // Note: This endpoint doesn't require API key according to documentation
+      );
+
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Error fetching crypto currencies for fiat:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  }
+
+  // ========================= LEGACY METHODS (DEPRECATED) =========================
+
+  /**
+   * @deprecated Use getAvailableCurrencies() instead
+   */
+  async getAvailableCurrenciesLegacy(): Promise<any[]> {
+    try {
+      const response = await axios.get(`${this.baseUrl}/exchange/currencies`);
+
+      // Replace ChangeNOW image URLs with our own proxied URLs
+      const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";
+      const filteredData = response.data.map((currency: any) => {
+        if (currency.image && currency.image.includes("changenow.io")) {
+          // Replace with our own image proxy URL
+          currency.image = `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`;
         }
+        return currency;
+      });
+
+      return filteredData;
+    } catch (error: any) {
+      console.error(
+        "Exchange API Error:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to get available currencies");
     }
+  }
 
-    /**
-     * 2. Get available pairs
-     */
-    async getAvailablePairs(
-        fromCurrency?: string,
-        toCurrency?: string,
-        fromNetwork?: string,
-        toNetwork?: string,
-        flow?: "standard" | "fixed-rate"
-    ) {
-        try {
-            const params = new URLSearchParams();
-            if (fromCurrency) params.append('fromCurrency', fromCurrency);
-            if (toCurrency) params.append('toCurrency', toCurrency);
-            if (fromNetwork) params.append('fromNetwork', fromNetwork);
-            if (toNetwork) params.append('toNetwork', toNetwork);
-            if (flow) params.append('flow', flow);
+  /**
+   * @deprecated Use getEstimatedExchangeAmount() instead
+   */
+  async getEstimatedAmount(
+    fromCurrency: string,
+    toCurrency: string,
+    fromAmount: string,
+    fromNetwork?: string,
+    toNetwork?: string,
+    flow: "standard" | "fixed-rate" = "standard",
+    type: "direct" | "reverse" = "direct"
+  ): Promise<any> {
+    try {
+      const params = new URLSearchParams({
+        fromCurrency,
+        toCurrency,
+        fromAmount,
+        flow,
+        type,
+      });
 
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/exchange/available-pairs?${params.toString()}`,
-                { headers: this.getHeaders() }
-            );
+      if (fromNetwork) params.append("fromNetwork", fromNetwork);
+      if (toNetwork) params.append("toNetwork", toNetwork);
 
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching available pairs:', error.response?.data || error.message);
-            throw error;
-        }
+      const response = await axios.get(
+        `${this.baseUrl}/exchange/estimated-amount?${params}`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error(
+        "Exchange API Error:",
+        error.response?.data || error.message
+      );
+      throw new Error("Failed to get estimated amount");
     }
-
-    /**
-     * 3. Get minimal exchange amount
-     */
-    async getMinimalExchangeAmount(
-        fromCurrency: string,
-        toCurrency: string,
-        options?: MinAmountOptions
-    ) {
-        try {
-            const params = new URLSearchParams({
-                fromCurrency,
-                toCurrency,
-            });
-
-            if (options?.fromNetwork) params.append('fromNetwork', options.fromNetwork);
-            if (options?.toNetwork) params.append('toNetwork', options.toNetwork);
-            if (options?.flow) params.append('flow', options.flow);
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/exchange/min-amount?${params.toString()}`,
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching minimal exchange amount:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 4. Get estimated exchange amount
-     */
-    async getEstimatedExchangeAmount(
-        fromCurrency: string,
-        toCurrency: string,
-        options: EstimatedAmountOptions
-    ) {
-        try {
-            // Automatically set useRateId to true for fixed-rate flow to get rateId
-            const modifiedOptions = {
-                ...options,
-                useRateId: options.flow === "fixed-rate" ? true : options.useRateId,
-            };
-
-            const params = new URLSearchParams({ fromCurrency, toCurrency });
-            Object.entries(modifiedOptions).forEach(
-                ([k, v]) => v !== undefined && params.append(k, String(v))
-            );
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/exchange/estimated-amount?${params.toString()}`,
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching estimated exchange amount:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 5. Get transaction status by ID
-     */
-    async getTransactionStatus(transactionId: string) {
-        try {
-            const params = new URLSearchParams({ id: transactionId });
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/exchange/by-id?${params.toString()}`,
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching transaction status:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 6. Get user addresses
-     */
-    async getUserAddresses(name: string, apiKey?: string) {
-        try {
-            const headers = apiKey ? { 'x-changenow-api-key': apiKey } : this.getHeaders();
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/addresses-by-name?name=${encodeURIComponent(name)}`,
-                { headers }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching user addresses:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 7. Get estimated network fee
-     */
-    async getEstimatedNetworkFee(
-        fromCurrency: string,
-        toCurrency: string,
-        fromAmount: number,
-        options?: NetworkFeeOptions
-    ) {
-        try {
-            const params = new URLSearchParams({
-                fromCurrency,
-                toCurrency,
-                fromAmount: String(fromAmount),
-            });
-
-            if (options?.fromNetwork) params.append('fromNetwork', options.fromNetwork);
-            if (options?.toNetwork) params.append('toNetwork', options.toNetwork);
-            if (options?.convertedCurrency) params.append('convertedCurrency', options.convertedCurrency);
-            if (options?.convertedNetwork) params.append('convertedNetwork', options.convertedNetwork);
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/exchange/network-fee?${params.toString()}`,
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching network fee estimate:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 8. Get exchange range
-     */
-    async getExchangeRange(
-        fromCurrency: string,
-        toCurrency: string,
-        options?: ExchangeRangeOptions
-    ) {
-        try {
-            const params = new URLSearchParams({
-                fromCurrency,
-                toCurrency,
-            });
-
-            if (options?.fromNetwork) params.append('fromNetwork', options.fromNetwork);
-            if (options?.toNetwork) params.append('toNetwork', options.toNetwork);
-            if (options?.flow) params.append('flow', options.flow);
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/exchange/range?${params.toString()}`,
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching exchange range:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 9. Create fiat transaction
-     */
-    async createFiatTransaction(request: FiatTransactionRequest) {
-        try {
-            const response: AxiosResponse = await axios.post(
-                `${this.baseUrl}/fiat-transaction`,
-                request,
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error creating fiat transaction:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 10. Get fiat market info
-     */
-    async getFiatMarketInfo(
-        fromCurrency: string,
-        toCurrency: string,
-        options?: FiatMarketInfoOptions
-    ) {
-        try {
-            const fromCurrencyWithNetwork = options?.fromNetwork
-                ? `${fromCurrency}_${options.fromNetwork}`
-                : fromCurrency;
-            const toCurrencyWithNetwork = options?.toNetwork
-                ? `${toCurrency}_${options.toNetwork}`
-                : toCurrency;
-
-            const pair = `${fromCurrencyWithNetwork}-${toCurrencyWithNetwork}`;
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/fiat-market-info/min-max-range/${pair}`,
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching fiat market info:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 11. Get fiat health check
-     */
-    async getFiatHealthCheck() {
-        try {
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/fiat-status`,
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching fiat health check:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 12. Get exchange actions
-     */
-    async getExchangeActions(transactionId: string) {
-        try {
-            const params = new URLSearchParams({ id: transactionId });
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/exchange/actions?${params.toString()}`,
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching exchange actions:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 13. Refund exchange
-     */
-    async refundExchange(request: RefundExchangeRequest) {
-        try {
-            const response: AxiosResponse = await axios.post(
-                `${this.baseUrl}/exchange/refund`,
-                {
-                    id: request.id,
-                    address: request.address,
-                    ...(request.extraId && { extraId: request.extraId }),
-                },
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error refunding exchange:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 14. Continue exchange
-     */
-    async continueExchange(request: ContinueExchangeRequest) {
-        try {
-            const response: AxiosResponse = await axios.post(
-                `${this.baseUrl}/exchange/continue`,
-                { id: request.id },
-                { headers: this.getHeaders() }
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error continuing exchange:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 15. Get fiat transaction status (uses x-api-key)
-     */
-    async getFiatTransactionStatus(transactionId: string) {
-        try {
-            const params = new URLSearchParams({ id: transactionId });
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/fiat-status?${params.toString()}`,
-                { headers: this.getHeaders(true) } // Use x-api-key
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching fiat transaction status:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 16. Get fiat estimate (uses x-api-key)
-     */
-    async getFiatEstimate(request: FiatEstimateRequest) {
-        try {
-            const params = new URLSearchParams();
-            params.append('from_currency', request.from_currency);
-            params.append('from_amount', request.from_amount.toString());
-            params.append('to_currency', request.to_currency);
-
-            if (request.from_network) params.append('from_network', request.from_network);
-            if (request.to_network) params.append('to_network', request.to_network);
-            if (request.deposit_type) params.append('deposit_type', request.deposit_type);
-            if (request.payout_type) params.append('payout_type', request.payout_type);
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/fiat-estimate?${params.toString()}`,
-                { headers: this.getHeaders(true) } // Use x-api-key
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching fiat estimate:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    // ========================= ADDITIONAL ENDPOINTS FROM SAMPLE2 =========================
-
-    /**
-     * 17. Validate address
-     */
-    async validateAddress(currency: string, address: string) {
-        try {
-            const params = new URLSearchParams({
-                currency,
-                address,
-            });
-
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/validate/address?${params.toString()}`
-                // Note: This endpoint doesn't require API key according to documentation
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error validating address:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 18. Get fiat currencies
-     */
-    async getFiatCurrencies() {
-        try {
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/fiat-currencies/fiat`
-                // Note: This endpoint doesn't require API key according to documentation
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching fiat currencies:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    /**
-     * 19. Get crypto currencies for fiat
-     */
-    async getCryptoCurrenciesForFiat() {
-        try {
-            const response: AxiosResponse = await axios.get(
-                `${this.baseUrl}/fiat-currencies/crypto`
-                // Note: This endpoint doesn't require API key according to documentation
-            );
-
-            return response.data;
-        } catch (error: any) {
-            console.error('Error fetching crypto currencies for fiat:', error.response?.data || error.message);
-            throw error;
-        }
-    }
-
-    // ========================= LEGACY METHODS (DEPRECATED) =========================
-    
-    /**
-     * @deprecated Use getAvailableCurrencies() instead
-     */
-    async getAvailableCurrenciesLegacy(): Promise<any[]> {
-        try {
-            const response = await axios.get(`${this.baseUrl}/exchange/currencies`);
-            
-            // Replace ChangeNOW image URLs with our own proxied URLs
-            const baseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
-            const filteredData = response.data.map((currency: any) => {
-                if (currency.image && currency.image.includes('changenow.io')) {
-                    // Replace with our own image proxy URL
-                    currency.image = `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`;
-                }
-                return currency;
-            });
-            
-            return filteredData;
-        } catch (error: any) {
-            console.error('Exchange API Error:', error.response?.data || error.message);
-            throw new Error('Failed to get available currencies');
-        }
-    }
-
-    /**
-     * @deprecated Use getEstimatedExchangeAmount() instead
-     */
-    async getEstimatedAmount(
-        fromCurrency: string,
-        toCurrency: string,
-        fromAmount: string,
-        fromNetwork?: string,
-        toNetwork?: string,
-        flow: 'standard' | 'fixed-rate' = 'standard',
-        type: 'direct' | 'reverse' = 'direct'
-    ): Promise<any> {
-        try {
-            const params = new URLSearchParams({
-                fromCurrency,
-                toCurrency,
-                fromAmount,
-                flow,
-                type,
-            });
-
-            if (fromNetwork) params.append('fromNetwork', fromNetwork);
-            if (toNetwork) params.append('toNetwork', toNetwork);
-
-            const response = await axios.get(`${this.baseUrl}/exchange/estimated-amount?${params}`);
-            return response.data;
-        } catch (error: any) {
-            console.error('Exchange API Error:', error.response?.data || error.message);
-            throw new Error('Failed to get estimated amount');
-        }
-    }
+  }
 }
 
 export { ChangeNowService };

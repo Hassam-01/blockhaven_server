@@ -6,6 +6,8 @@ import { Faq } from "../entities/faq.entity.js";
 import { ServiceFee } from "../entities/servicefee.entity.js";
 import { Contact } from "../entities/contact.entity.js";
 import { Exchange } from "../entities/exchange.entity.js";
+import { Currencies } from "../entities/currencies.entity.js";
+import { ExchangePairs } from "../entities/exchangepairs.entity.js";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -14,7 +16,8 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME || "postgres",
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME || "blockhaven",
-  entities: [User, Testimonial, Faq, ServiceFee, Contact, Exchange],
+  entities: [User, Testimonial, Faq, ServiceFee, Contact, Exchange, Currencies, ExchangePairs],
+  migrations: ["src/migrations/*.ts"],
   synchronize: process.env.NODE_ENV !== 'production',
   logging: process.env.NODE_ENV === 'development',
 });
