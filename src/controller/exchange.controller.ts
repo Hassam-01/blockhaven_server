@@ -286,6 +286,24 @@ class ExchangeController {
       });
     }
   }
+
+  async fetchAndStoreAvailablePairs(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      await this.exchangeService.fetchAndStoreAvailablePairs();
+
+      return reply.status(200).send({
+        success: true,
+        message: "Available pairs fetched and stored successfully",
+      });
+    } catch (error: any) {
+      console.error("Fetch and Store Pairs Error:", error.message);
+      return reply.status(500).send({
+        success: false,
+        error: "Failed to fetch and store available pairs",
+        details: error.message,
+      });
+    }
+  }
 }
 
 export { ExchangeController };

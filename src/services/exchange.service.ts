@@ -1,6 +1,7 @@
 import { Repository } from 'typeorm';
 import { AppDataSource } from '../config/data-source.js';
 import { Exchange } from '../entities/exchange.entity.js';
+import { ExchangePairs } from '../entities/exchangepairs.entity.js';
 import { ChangeNowService, CreateExchangeRequest, CreateExchangeResponse } from './changenow.service.js';
 
 export interface CreateExchangeServiceRequest {
@@ -24,10 +25,12 @@ export interface CreateExchangeServiceRequest {
 
 class ExchangeService {
     private exchangeRepository: Repository<Exchange>;
+    private exchangePairsRepository: Repository<ExchangePairs>;
     private changeNowService: ChangeNowService;
 
     constructor() {
         this.exchangeRepository = AppDataSource.getRepository(Exchange);
+        this.exchangePairsRepository = AppDataSource.getRepository(ExchangePairs);
         this.changeNowService = new ChangeNowService();
     }
 
@@ -160,7 +163,7 @@ class ExchangeService {
             // Get current status from ChangeNow
             const statusResponse = await this.changeNowService.getExchangeStatus(transactionId);
             
-            // Find exchange in database
+            // Find exchange in database 
             const exchange = await this.exchangeRepository.findOne({ where: { transactionId } });
             if (!exchange) {
                 throw new Error('Exchange not found');
@@ -214,6 +217,119 @@ class ExchangeService {
             console.error('Exchange Service Error:', error.message);
             throw new Error(`Failed to get available currencies: ${error.message}`);
         }
+    }
+
+    async fetchAndStoreAvailablePairs(): Promise<void> {
+        try {
+            console.log('Fetching available pairs from ChangeNOW API...');
+
+            // Get all available pairs from ChangeNOW
+            const pairs = await this.changeNowService.getAvailablePairs();
+
+            console.log(`Fetched ${pairs.length} pairs from API`);
+            console.log('Sample pair structure:', JSON.stringify(pairs[0], null, 2));
+
+            // Load all existing pairs into memory for faster lookups
+            console.log('Loading existing pairs from database...');
+            const existingPairs = await this.exchangePairsRepository.find();
+            console.log(`Found ${existingPairs.length} existing pairs in database`);
+
+            // Create a map for faster lookups
+            const existingPairsMap = new Map<string, ExchangePairs>();
+            existingPairs.forEach(pair => {
+                const key = `${pair.from_ticker}:${pair.from_network}:${pair.to_ticker}:${pair.to_network}`;
+                existingPairsMap.set(key, pair);
+            });
+
+            // Process pairs in batches to avoid memory issues
+            const batchSize = 1000;
+            let processedCount = 0;
+            let newPairsCount = 0;
+            let updatedPairsCount = 0;
+
+            for (let i = 0; i < pairs.length; i += batchSize) {
+                const batch = pairs.slice(i, i + batchSize);
+                console.log(`Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(pairs.length / batchSize)} (${batch.length} pairs)...`);
+
+                const batchResults = await this.processPairsBatch(batch, existingPairsMap);
+                newPairsCount += batchResults.new;
+                updatedPairsCount += batchResults.updated;
+                processedCount += batch.length;
+            }
+
+            console.log(`✅ Processing complete!`);
+            console.log(`📊 Total pairs processed: ${processedCount}`);
+            console.log(`🆕 New pairs added: ${newPairsCount}`);
+            console.log(`🔄 Existing pairs updated: ${updatedPairsCount}`);
+            console.log('Successfully updated available pairs in database');
+
+        } catch (error: any) {
+            console.error('Exchange Service Error:', error.message);
+            throw new Error(`Failed to fetch and store available pairs: ${error.message}`);
+        }
+    }
+
+    private async processPairsBatch(pairs: any[], existingPairsMap: Map<string, ExchangePairs>): Promise<{ new: number; updated: number }> {
+        const pairsToSave: ExchangePairs[] = [];
+        const pairsToUpdate: ExchangePairs[] = [];
+
+        for (const pair of pairs) {
+            // Handle different possible API response structures
+            const fromCurrency = pair.fromCurrency || pair.from_currency || pair.from;
+            const fromNetwork = pair.fromNetwork || pair.from_network || pair.network || '';
+            const toCurrency = pair.toCurrency || pair.to_currency || pair.to;
+            const toNetwork = pair.toNetwork || pair.to_network || pair.network || '';
+            const flow = pair.flow || pair.flow_type;
+            const flows = pair.flows || (flow ? [flow] : []);
+
+            if (!fromCurrency || !toCurrency) {
+                console.warn('Skipping pair with missing currency info:', pair);
+                continue;
+            }
+
+            const key = `${fromCurrency}:${fromNetwork}:${toCurrency}:${toNetwork}`;
+            const existingPair = existingPairsMap.get(key);
+
+            if (!existingPair) {
+                const newPair = new ExchangePairs();
+                newPair.from_ticker = fromCurrency;
+                newPair.from_network = fromNetwork;
+                newPair.to_ticker = toCurrency;
+                newPair.to_network = toNetwork;
+                newPair.flow_standard = flows.includes('standard') || flow === 'standard' || false;
+                newPair.flow_fixed_rate = flows.includes('fixed-rate') || flow === 'fixed-rate' || false;
+                newPair.is_active = true;
+
+                pairsToSave.push(newPair);
+                // Add to map to avoid duplicates within this batch
+                existingPairsMap.set(key, newPair);
+            } else {
+                // Update existing pair if needed
+                const originalStandard = existingPair.flow_standard;
+                const originalFixedRate = existingPair.flow_fixed_rate;
+
+                existingPair.flow_standard = flows.includes('standard') || flow === 'standard' || existingPair.flow_standard;
+                existingPair.flow_fixed_rate = flows.includes('fixed-rate') || flow === 'fixed-rate' || existingPair.flow_fixed_rate;
+                existingPair.is_active = true;
+
+                // Only update if something changed
+                if (existingPair.flow_standard !== originalStandard || existingPair.flow_fixed_rate !== originalFixedRate) {
+                    pairsToUpdate.push(existingPair);
+                }
+            }
+        }
+
+        // Save new pairs in batch
+        if (pairsToSave.length > 0) {
+            await this.exchangePairsRepository.save(pairsToSave);
+        }
+
+        // Update existing pairs in batch
+        if (pairsToUpdate.length > 0) {
+            await this.exchangePairsRepository.save(pairsToUpdate);
+        }
+
+        return { new: pairsToSave.length, updated: pairsToUpdate.length };
     }
 }
 

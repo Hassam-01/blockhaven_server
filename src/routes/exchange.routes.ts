@@ -279,4 +279,25 @@ export async function exchangeRoutes(fastify: FastifyInstance, options: FastifyP
     }, async (request: any, reply: any) => {
         return exchangeController.updateExchangeStatus(request, reply);
     });
+
+    // POST /api/exchanges/fetch-pairs - Fetch and store available pairs (Admin Only)
+    fastify.post('/fetch-pairs', {
+        preHandler: [authMiddleware.requireAdmin.bind(authMiddleware)],
+        schema: {
+            summary: 'Fetch and store available exchange pairs (Admin Only)',
+            description: 'Fetch all available trading pairs from ChangeNow API and store them in the database. Requires admin privileges.',
+            tags: ['Exchange', 'Admin'],
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' }
+                    }
+                }
+            }
+        }
+    }, async (request: any, reply: any) => {
+        return exchangeController.fetchAndStoreAvailablePairs(request, reply);
+    });
 }

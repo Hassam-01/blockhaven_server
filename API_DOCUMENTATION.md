@@ -428,6 +428,9 @@ All successful responses follow this format:
 - `GET /api/exchanges/transaction/:transactionId` - Get exchange by ChangeNow transaction ID
 - `PUT /api/exchanges/:transactionId/status` - Update exchange status from ChangeNow
 
+### Admin Endpoints (Admin Users Only)
+- `POST /api/exchanges/fetch-pairs` - Fetch and store all available trading pairs from ChangeNow API
+
 ### Exchange Transaction Creation Details
 
 #### POST /api/exchanges
@@ -556,6 +559,50 @@ Get all exchange transactions for the authenticated user.
 - `failed` - Exchange failed
 - `refunded` - Funds refunded
 - `verifying` - Verifying transaction
+
+### Admin Endpoints
+
+#### POST /api/exchanges/fetch-pairs
+Fetch and store all available trading pairs from ChangeNow API. This endpoint requires admin authentication.
+
+**Authentication:** Required (Admin only)
+**Method:** POST
+**Endpoint:** `/api/exchanges/fetch-pairs`
+
+**Request Headers:**
+```
+Authorization: Bearer <admin-jwt-token>
+Content-Type: application/json
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Available pairs fetched and stored successfully"
+}
+```
+
+**Response (401 Unauthorized):**
+```json
+{
+  "error": "Unauthorized: User not authenticated"
+}
+```
+
+**Response (403 Forbidden):**
+```json
+{
+  "error": "Forbidden: Admin access required"
+}
+```
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/exchanges/fetch-pairs \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json"
+```
 
 ### Exchange Request Examples
 
