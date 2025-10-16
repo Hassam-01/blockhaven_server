@@ -1,5 +1,8 @@
 import axios, { AxiosResponse } from "axios";
 import { config } from "dotenv";
+import { Repository } from "typeorm";
+import { Currencies } from "../entities/currencies.entity";
+import { ExchangeService } from "./exchange.service";
 
 config();
 
@@ -157,14 +160,20 @@ class ChangeNowService {
   private readonly baseUrl = "https://api.changenow.io/v2";
   private readonly apiKey: string;
   private readonly XapiKey: string;
-  constructor() {
-    this.apiKey = process.env.CHANGENOW_API_KEY || "";
-    this.XapiKey = process.env.CHANGENOW_X_API_KEY || "";
-    if (!this.apiKey) {
-      console.warn(
-        "Warning: CHANGENOW_API_KEY not found in environment variables"
-      );
+
+  private currencyRepo?: Repository<Currencies>;
+  private pairsSvc?: ExchangeService;
+
+  private getPairsService(): ExchangeService {
+    if (!this.pairsSvc) {
+      this.pairsSvc = new ExchangeService();
     }
+    return this.pairsSvc;
+  }
+
+  // Method to set currency repository for data persistence
+  setCurrencyRepository(repo: Repository<Currencies>) {
+    this.currencyRepo = repo;
   }
 
   private getHeaders(useApiKey: boolean = false): Record<string, string> {
@@ -286,8 +295,28 @@ class ChangeNowService {
         }
         return currency;
       });
+      // If a repository instance is provided/initialized, persist the currencies; otherwise just return them
 
-      return filteredData;
+      const uniqueTickers = await this.getPairsService().getUniqueCurrencies();
+      console.log("unique tickers: ", uniqueTickers)
+      const uniquePairs = filteredData.filter((currency: any) =>
+        uniqueTickers.includes(currency.ticker)
+      );
+      console.log("pairs: ", uniquePairs, this.currencyRepo)
+      if (this.currencyRepo) {
+        // Save currencies individually to handle duplicates gracefully
+        for (const currency of uniquePairs) {
+          try {
+            await this.currencyRepo.save(currency);
+          } catch (saveError: any) {
+            // Ignore duplicate key errors, but log other errors
+            if (!saveError.message.includes('duplicate key value')) {
+              console.warn('Error saving currency:', currency.ticker, saveError.message);
+            }
+          }
+        }
+      }
+      return uniquePairs;
     } catch (error: any) {
       console.error(
         "Error fetching currencies:",

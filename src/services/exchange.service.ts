@@ -30,13 +30,17 @@ export interface CreateExchangeServiceRequest {
 
 class ExchangeService {
   private exchangeRepository: Repository<Exchange>;
+  private currencyRepository: Repository<Currencies>;
   private exchangePairsRepository: Repository<ExchangePairs>;
   private changeNowService: ChangeNowService;
 
   constructor() {
     this.exchangeRepository = AppDataSource.getRepository(Exchange);
+    this.currencyRepository = AppDataSource.getRepository(Currencies);
     this.exchangePairsRepository = AppDataSource.getRepository(ExchangePairs);
     this.changeNowService = new ChangeNowService();
+    // Initialize currency repository in ChangeNowService for data persistence
+    this.changeNowService.setCurrencyRepository(this.currencyRepository);
   }
 
   async createExchange(
@@ -241,9 +245,21 @@ class ExchangeService {
     }
   }
 
+  // TODO 
+  async getAvailableBlockhavenCurrencies(){
+    try {
+      const currencies = await this.currencyRepository.find();
+      console.log()
+      return currencies;
+    }catch{
+        throw new Error("Failed to get currencies: Exchange Service Error")
+    }
+  }
+
+
   async getAvailableCurrencies(): Promise<any[]> {
     try {
-      const currencies = await this.changeNowService.getAvailableCurrencies();
+      const currencies = await this.currencyRepository.find();
       return currencies;
     } catch (error: any) {
       console.error("Exchange Service Error:", error.message);
@@ -253,7 +269,16 @@ class ExchangeService {
 
   async fetchAndStoreAvailablePairs(): Promise<void> {
     try {
-      console.log("Fetching available pairs from ChangeNOW API...");
+      console.log("Fetching available pairs and currencies from ChangeNOW API...");
+
+      // First, fetch and store currencies
+      console.log("Fetching currencies from ChangeNOW API...");
+      try {
+        await this.changeNowService.getAvailableCurrencies();
+        console.log("✅ Currencies fetched and stored successfully");
+      } catch (currencyError: any) {
+        console.warn("⚠️ Failed to fetch currencies, continuing with pairs:", currencyError.message);
+      }
 
       // Get all available pairs from ChangeNOW
       const pairs = await this.changeNowService.getAvailablePairs();
@@ -455,6 +480,21 @@ class ExchangeService {
     } catch (error: any) {
       console.error("Exchange Service Error:", error.message);
       throw new Error("Failed to get enhanced pairs");
+    }
+  }
+
+  async fetchAndStoreCurrencies(): Promise<void> {
+    try {
+      console.log("Fetching currencies from ChangeNOW API...");
+
+      // Fetch currencies from ChangeNOW API and store them
+      await this.changeNowService.getAvailableCurrencies();
+
+      console.log("✅ Currencies fetched and stored successfully");
+
+    } catch (error: any) {
+      console.error("Exchange Service Error:", error.message);
+      throw new Error(`Failed to fetch and store currencies: ${error.message}`);
     }
   }
 }

@@ -417,7 +417,7 @@ All successful responses follow this format:
 ## Exchange Endpoints (ChangeNow Integration)
 
 ### Public Endpoints
-- `GET /api/exchanges/currencies` - Get available currencies for exchange
+- `GET /api/exchanges/currencies` - Get available currencies for exchange (from database)
 - `GET /api/exchanges/enhanced-pairs` - Get enhanced trading pairs with currency details
 - `GET /api/exchanges/estimate` - Get estimated exchange amount
   - Query params: `fromCurrency`, `toCurrency`, `fromAmount`, `fromNetwork` (optional), `toNetwork` (optional), `flow` (optional), `type` (optional)
@@ -430,7 +430,8 @@ All successful responses follow this format:
 - `PUT /api/exchanges/:transactionId/status` - Update exchange status from ChangeNow
 
 ### Admin Endpoints (Admin Users Only)
-- `POST /api/exchanges/fetch-pairs` - Fetch and store all available trading pairs from ChangeNow API
+- `POST /api/exchanges/fetch-pairs` - Fetch and store all available trading pairs from ChangeNow API (also fetches and stores currencies)
+- `POST /api/exchanges/fetch-currencies` - Fetch and store all available currencies from ChangeNow API
 
 ### Exchange Transaction Creation Details
 
@@ -566,6 +567,37 @@ Get all available trading pairs with complete currency information including nam
 curl -X GET http://localhost:3000/api/exchanges/enhanced-pairs
 ```
 
+#### GET /api/exchanges/currencies
+Get available currencies for exchange from the database. Currencies are automatically updated when trading pairs are fetched via the admin endpoint.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Available currencies retrieved successfully",
+  "data": [
+    {
+      "id": 1,
+      "ticker": "btc",
+      "name": "Bitcoin",
+      "image_url": "https://api.changenow.io/images/currencies/btc.png",
+      "has_external_id": false,
+      "is_fiat": false,
+      "featured": true,
+      "is_stable": false,
+      "support_fixed_rate": true,
+      "network": "btc",
+      "is_active": true
+    }
+  ]
+}
+```
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:3000/api/exchanges/currencies
+```
+
 #### GET /api/exchanges
 Get all exchange transactions for the authenticated user.
 
@@ -602,7 +634,7 @@ Get all exchange transactions for the authenticated user.
 ### Admin Endpoints
 
 #### POST /api/exchanges/fetch-pairs
-Fetch and store all available trading pairs from ChangeNow API. This endpoint requires admin authentication.
+Fetch and store all available trading pairs from ChangeNow API, and also fetch and store all available currencies. This endpoint requires admin authentication.
 
 **Authentication:** Required (Admin only)
 **Method:** POST
@@ -643,6 +675,48 @@ curl -X POST http://localhost:3000/api/exchanges/fetch-pairs \
   -H "Content-Type: application/json"
 ```
 
+#### POST /api/exchanges/fetch-currencies
+Fetch and store all available currencies from ChangeNow API. This endpoint requires admin authentication.
+
+**Authentication:** Required (Admin only)
+**Method:** POST
+**Endpoint:** `/api/exchanges/fetch-currencies`
+
+**Request Headers:**
+```
+Authorization: Bearer <admin-jwt-token>
+Content-Type: application/json
+```
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Currencies fetched and stored successfully"
+}
+```
+
+**Response (401 Unauthorized):**
+```json
+{
+  "error": "Unauthorized: User not authenticated"
+}
+```
+
+**Response (403 Forbidden):**
+```json
+{
+  "error": "Forbidden: Admin access required"
+}
+```
+
+**Example Request:**
+```bash
+curl -X POST http://localhost:3000/api/exchanges/fetch-currencies \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json"
+```
+
 ### Exchange Request Examples
 
 #### Create Exchange Transaction
@@ -673,6 +747,13 @@ curl -X GET http://localhost:3000/api/exchanges/currencies
 #### Get Enhanced Pairs
 ```bash
 curl -X GET http://localhost:3000/api/exchanges/enhanced-pairs
+```
+
+#### Fetch Currencies (Admin)
+```bash
+curl -X POST http://localhost:3000/api/exchanges/fetch-currencies \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json"
 ```
 
 #### Update Exchange Status
