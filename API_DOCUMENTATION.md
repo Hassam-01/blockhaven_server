@@ -418,6 +418,7 @@ All successful responses follow this format:
 
 ### Public Endpoints
 - `GET /api/exchanges/currencies` - Get available currencies for exchange
+- `GET /api/exchanges/enhanced-pairs` - Get enhanced trading pairs with currency details
 - `GET /api/exchanges/estimate` - Get estimated exchange amount
   - Query params: `fromCurrency`, `toCurrency`, `fromAmount`, `fromNetwork` (optional), `toNetwork` (optional), `flow` (optional), `type` (optional)
 - `POST /api/exchanges` - Create new exchange transaction (No authentication required)
@@ -527,6 +528,44 @@ GET /api/exchanges/estimate?fromCurrency=btc&toCurrency=eth&fromAmount=0.01&flow
 }
 ```
 
+#### GET /api/exchanges/enhanced-pairs
+Get all available trading pairs with complete currency information including names, images, and features. This endpoint joins exchange pairs data with currency details for rich frontend display.
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Enhanced pairs retrieved successfully",
+  "data": [
+    {
+      "from": {
+        "ticker": "btc",
+        "network": "btc",
+        "name": "Bitcoin",
+        "image": "https://api.changenow.io/images/currencies/btc.png",
+        "featured": true
+      },
+      "to": {
+        "ticker": "eth",
+        "network": "eth",
+        "name": "Ethereum",
+        "image": "https://api.changenow.io/images/currencies/eth.png",
+        "featured": true
+      },
+      "flow": {
+        "standard": true,
+        "fixed-rate": false
+      }
+    }
+  ]
+}
+```
+
+**Example Request:**
+```bash
+curl -X GET http://localhost:3000/api/exchanges/enhanced-pairs
+```
+
 #### GET /api/exchanges
 Get all exchange transactions for the authenticated user.
 
@@ -629,6 +668,11 @@ curl -X GET "http://localhost:3000/api/exchanges/estimate?fromCurrency=btc&toCur
 #### Get Available Currencies
 ```bash
 curl -X GET http://localhost:3000/api/exchanges/currencies
+```
+
+#### Get Enhanced Pairs
+```bash
+curl -X GET http://localhost:3000/api/exchanges/enhanced-pairs
 ```
 
 #### Update Exchange Status

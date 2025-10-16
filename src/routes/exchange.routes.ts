@@ -300,4 +300,59 @@ export async function exchangeRoutes(fastify: FastifyInstance, options: FastifyP
     }, async (request: any, reply: any) => {
         return exchangeController.fetchAndStoreAvailablePairs(request, reply);
     });
+
+    // GET /api/exchanges/enhanced-pairs - Get enhanced pairs with currency details
+    fastify.get('/enhanced-pairs', {
+        schema: {
+            summary: 'Get enhanced exchange pairs with currency details',
+            description: 'Retrieve all available trading pairs with complete currency information including names, images, and features.',
+            tags: ['Exchange'],
+            response: {
+                200: {
+                    type: 'object',
+                    properties: {
+                        success: { type: 'boolean' },
+                        message: { type: 'string' },
+                        data: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    from: {
+                                        type: 'object',
+                                        properties: {
+                                            ticker: { type: 'string' },
+                                            network: { type: 'string' },
+                                            name: { type: 'string' },
+                                            image: { type: 'string' },
+                                            featured: { type: 'boolean' }
+                                        }
+                                    },
+                                    to: {
+                                        type: 'object',
+                                        properties: {
+                                            ticker: { type: 'string' },
+                                            network: { type: 'string' },
+                                            name: { type: 'string' },
+                                            image: { type: 'string' },
+                                            featured: { type: 'boolean' }
+                                        }
+                                    },
+                                    flow: {
+                                        type: 'object',
+                                        properties: {
+                                            standard: { type: 'boolean' },
+                                            'fixed-rate': { type: 'boolean' }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }, async (request: any, reply: any) => {
+        return exchangeController.getEnhancedPairs(request, reply);
+    });
 }

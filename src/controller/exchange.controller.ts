@@ -304,6 +304,25 @@ class ExchangeController {
       });
     }
   }
+
+  async getEnhancedPairs(request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const enhancedPairs = await this.exchangeService.getEnhancedPairs();
+
+      return reply.status(200).send({
+        success: true,
+        message: "Enhanced pairs retrieved successfully",
+        data: enhancedPairs,
+      });
+    } catch (error: any) {
+      console.error("Get Enhanced Pairs Error:", error.message);
+      return reply.status(500).send({
+        success: false,
+        error: "Failed to get enhanced pairs",
+        details: error.message,
+      });
+    }
+  }
 }
 
 export { ExchangeController };
