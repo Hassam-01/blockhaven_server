@@ -5,12 +5,13 @@
  * Run with: node populate-db-admin.js
  */
 
+import 'dotenv/config';
 import axios from 'axios';
 import { createTempAdmin, deleteTempAdmin } from './temp-admin-utils.js';
 
 const BASE_URL = process.env.API_BASE_URL || 'https://blockhaven.co';
 
-console.log("base url: ", BASE_URL, process.env.BASE_URL)
+console.log("base url: ", BASE_URL, process.env.API_BASE_URL)
 
 async function populateDatabaseWithAdmin() {
     let tempAdmin = null;
