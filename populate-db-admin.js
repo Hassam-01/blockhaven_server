@@ -8,7 +8,9 @@
 import axios from 'axios';
 import { createTempAdmin, deleteTempAdmin } from './temp-admin-utils.js';
 
-const BASE_URL = process.env.API_BASE_URL || 'http://blockhaven.co/api';
+const BASE_URL = process.env.API_BASE_URL || 'https://blockhaven.co';
+
+console.log("base url: ", BASE_URL)
 
 async function populateDatabaseWithAdmin() {
     let tempAdmin = null;
@@ -24,7 +26,7 @@ async function populateDatabaseWithAdmin() {
 
         // Step 2: Login as admin
         console.log('2️⃣ Logging in as temporary admin...');
-        const loginResponse = await axios.post(`${BASE_URL}/users/login`, {
+        const loginResponse = await axios.post(`${BASE_URL}/api/users/login`, {
             email: tempAdmin.email,
             password: tempAdmin.password
         });
@@ -44,14 +46,14 @@ async function populateDatabaseWithAdmin() {
 
         // Step 3: Fetch currencies
         console.log('3️⃣ Fetching currencies...');
-        const currenciesResponse = await axios.post(`${BASE_URL}/exchanges/fetch-currencies`, {}, { headers });
+        const currenciesResponse = await axios.post(`${BASE_URL}/api/exchanges/fetch-currencies`, {}, { headers });
 
         console.log('✅ Currencies fetch successful!');
         console.log('📊 Currencies Response:', currenciesResponse.data);
 
         // Step 4: Fetch pairs
         console.log('\n4️⃣ Fetching exchange pairs...');
-        const pairsResponse = await axios.post(`${BASE_URL}/exchanges/fetch-pairs`, {}, { headers });
+        const pairsResponse = await axios.post(`${BASE_URL}/api/exchanges/fetch-pairs`, {}, { headers });
 
         console.log('✅ Pairs fetch successful!');
         console.log('📊 Pairs Response:', pairsResponse.data);
