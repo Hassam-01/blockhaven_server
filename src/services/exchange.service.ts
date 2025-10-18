@@ -531,6 +531,47 @@ class ExchangeService {
       throw new Error(`Failed to fetch and store currencies: ${error.message}`);
     }
   }
+
+  async checkPairAvailability(
+    fromCurrency: string,
+    fromNetwork: string,
+    toCurrency: string,
+    toNetwork: string,
+    flow: "standard" | "fixed-rate"
+  ): Promise<{ available: boolean; message?: string }> {
+    try {
+      const pair = await this.exchangePairsRepository.findOne({
+        where: {
+          from_ticker: fromCurrency,
+          from_network: fromNetwork,
+          to_ticker: toCurrency,
+          to_network: toNetwork,
+          is_active: true,
+        },
+      });
+
+      if (!pair) {
+        return {
+          available: false,
+          message: "Pair is currently unavailable for exchange",
+        };
+      }
+
+      const flowEnabled = flow === "standard" ? pair.flow_standard : pair.flow_fixed_rate;
+
+      if (!flowEnabled) {
+        return {
+          available: false,
+          message: `The pair cannot be exchanged with flow: ${flow}`,
+        };
+      }
+
+      return { available: true };
+    } catch (error: any) {
+      console.error("Exchange Service Error:", error.message);
+      throw new Error("Failed to check pair availability");
+    }
+  }
 }
 
 export { ExchangeService };
