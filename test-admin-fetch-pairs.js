@@ -8,7 +8,7 @@
 import axios from 'axios';
 import { createTempAdmin, deleteTempAdmin } from './temp-admin-utils.js';
 
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = process.env.API_BASE_URL || "https://blockhaven.co";
 
 async function testAdminFetchPairs() {
     let tempAdmin = null;
@@ -24,7 +24,7 @@ async function testAdminFetchPairs() {
 
         // Step 2: Login as admin
         console.log('2️⃣ Logging in as temporary admin...');
-        const loginResponse = await axios.post(`${BASE_URL}/users/login`, {
+        const loginResponse = await axios.post(`${BASE_URL}/api/users/login`, {
             email: tempAdmin.email,
             password: tempAdmin.password
         });
@@ -44,7 +44,7 @@ async function testAdminFetchPairs() {
             'Content-Type': 'application/json'
         };
 
-        const fetchResponse = await axios.post(`${BASE_URL}/exchanges/fetch-pairs`, {}, { headers });
+        const fetchResponse = await axios.post(`${BASE_URL}/api/exchanges/fetch-pairs`, {}, { headers });
 
         console.log('✅ Fetch pairs request successful!');
         console.log('📊 Response:', fetchResponse.data);
@@ -52,7 +52,7 @@ async function testAdminFetchPairs() {
         // Step 4: Test without authentication (should fail)
         console.log('\n4️⃣ Testing without authentication (should fail)...');
         try {
-            await axios.post(`${BASE_URL}/exchanges/fetch-pairs`);
+            await axios.post(`${BASE_URL}/api/exchanges/fetch-pairs`);
             console.log('❌ ERROR: Request should have failed without authentication!');
         } catch (error) {
             if (error.response?.status === 401) {
@@ -69,7 +69,7 @@ async function testAdminFetchPairs() {
                 'Authorization': `Bearer invalid-token`,
                 'Content-Type': 'application/json'
             };
-            await axios.post(`${BASE_URL}/exchanges/fetch-pairs`, {}, { headers: invalidHeaders });
+            await axios.post(`${BASE_URL}/api/exchanges/fetch-pairs`, {}, { headers: invalidHeaders });
             console.log('❌ ERROR: Request should have failed with invalid token!');
         } catch (error) {
             if (error.response?.status === 401) {

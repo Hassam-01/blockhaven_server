@@ -12,15 +12,12 @@ import {
   RefundExchangeRequest,
   ContinueExchangeRequest,
 } from "../services/changenow.service.js";
-import { ExchangeService } from "../services/exchange.service.js";
 
 export class ChangeNowController {
   private changeNowService: ChangeNowService;
-  private exchangeService: ExchangeService;
 
   constructor() {
     this.changeNowService = new ChangeNowService();
-    this.exchangeService = new ExchangeService();
   }
 
   /**

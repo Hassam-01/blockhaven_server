@@ -280,7 +280,7 @@ class ExchangeService {
       }
 
       // Proxy images through server URL
-      const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";
+      const baseUrl = process.env.API_BASE_URL || "https://blockhaven.co";
       const currenciesWithProxiedImages = currencies.map((currency: any) => ({
         ...currency,
         image: currency.image && currency.image.includes("changenow.io")

@@ -8,7 +8,7 @@
 import axios from 'axios';
 import { createTempAdmin, deleteTempAdmin } from './temp-admin-utils.js';
 
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = process.env.API_BASE_URL || "https://blockhaven.co";
 
 async function testFetchCurrencies() {
     let tempAdmin = null;
@@ -24,7 +24,7 @@ async function testFetchCurrencies() {
 
         // Step 2: Login as admin
         console.log('2️⃣ Logging in as temporary admin...');
-        const loginResponse = await axios.post(`${BASE_URL}/users/login`, {
+        const loginResponse = await axios.post(`${BASE_URL}/api/users/login`, {
             email: tempAdmin.email,
             password: tempAdmin.password
         });
@@ -44,7 +44,7 @@ async function testFetchCurrencies() {
             'Content-Type': 'application/json'
         };
 
-        const fetchResponse = await axios.post(`${BASE_URL}/exchanges/fetch-currencies`, {}, { headers });
+        const fetchResponse = await axios.post(`${BASE_URL}/api/exchanges/fetch-currencies`, {}, { headers });
 
         console.log('✅ Fetch currencies request successful!');
         console.log('📊 Response:', fetchResponse.data);
@@ -73,7 +73,7 @@ async function testFetchCurrencies() {
                 'Authorization': `Bearer invalid-token`,
                 'Content-Type': 'application/json'
             };
-            await axios.post(`${BASE_URL}/exchanges/fetch-currencies`, {}, { headers: invalidHeaders });
+            await axios.post(`${BASE_URL}/api/exchanges/fetch-currencies`, {}, { headers: invalidHeaders });
             console.log('❌ ERROR: Request should have failed with invalid token!');
         } catch (error) {
             if (error.response?.status === 401) {

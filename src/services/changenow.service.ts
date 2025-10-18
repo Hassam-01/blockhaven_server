@@ -282,7 +282,7 @@ class ChangeNowService {
       const dbCurrencies = await this.getPairsService().getAvailableCurrencies();
 
       // Transform DB fields to match ChangNow API response format
-      const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";
+      const baseUrl = process.env.API_BASE_URL || "https:blockhaven.co";
       const transformedCurrencies = dbCurrencies.map((currency: any) => ({
         ticker: currency.ticker,
         name: currency.name,
@@ -823,7 +823,7 @@ class ChangeNowService {
       const response = await axios.get(`${this.baseUrl}/exchange/currencies`);
 
       // Replace ChangeNOW image URLs with our own proxied URLs
-      const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";
+      const baseUrl = process.env.API_BASE_URL || "https://blockhaven.co";
       const filteredData = response.data.map((currency: any) => {
         if (currency.image && currency.image.includes("changenow.io")) {
           // Replace with our own image proxy URL
