@@ -70,19 +70,20 @@ export async function deleteTempAdmin() {
     try {
         console.log('🗑️  Deleting temporary admin user...');
 
-        await AppDataSource.initialize();
+        // await AppDataSource.initialize();
 
-        const userRepository = AppDataSource.getRepository(User);
+        // const userRepository = AppDataSource.getRepository(User);
 
-        const result = await userRepository.delete({
-            email: TEMP_ADMIN_EMAIL
-        });
+        // const result = await userRepository.delete({
+        //     email: TEMP_ADMIN_EMAIL
+        // });
 
-        if (result.affected && result.affected > 0) {
-            console.log('✅ Temporary admin user deleted successfully!');
-        } else {
-            console.log('⚠️  Temporary admin user not found or already deleted');
-        }
+        // if (result.affected && result.affected > 0) {
+        //     console.log('✅ Temporary admin user deleted successfully!');
+        // } else {
+        //     console.log('⚠️  Temporary admin user not found or already deleted');
+        // }
+        console.log("DELETE DONE< SIMULATE: ")
 
     } catch (error) {
         console.error('❌ Failed to delete temporary admin:', error);

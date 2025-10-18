@@ -9,7 +9,8 @@ import 'dotenv/config';
 import axios from 'axios';
 import { createTempAdmin, deleteTempAdmin } from './temp-admin-utils.js';
 
-const BASE_URL = process.env.API_BASE_URL || 'https://blockhaven.co';
+// const BASE_URL = process.env.API_BASE_URL || 'https://blockhaven.co';
+const BASE_URL = 'http://localhost:5000';
 
 console.log("base url: ", BASE_URL, process.env.API_BASE_URL)
 
