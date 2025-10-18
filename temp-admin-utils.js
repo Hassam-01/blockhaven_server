@@ -5,8 +5,8 @@
  * Run with: node temp-admin-utils.js
  */
 
-import { AppDataSource } from './src/config/data-source.ts';
-import { User } from './src/entities/user.entity.ts';
+import { AppDataSource } from './src/config/data-source.js';
+import { User } from './src/entities/user.entity.js';
 import bcrypt from 'bcryptjs';
 
 const TEMP_ADMIN_EMAIL = 'temp-admin-test@example.com';
