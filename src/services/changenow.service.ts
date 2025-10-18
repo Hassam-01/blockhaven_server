@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 import { config } from "dotenv";
 import { Repository } from "typeorm";
-import { Currencies } from "../entities/currencies.entity";
+import { Currencies } from "../entities/currencies.entity.js";
 import { ExchangeService } from "./exchange.service";
 
 config();
