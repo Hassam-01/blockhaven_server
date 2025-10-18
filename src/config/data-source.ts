@@ -17,7 +17,7 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME || "blockhaven",
   entities: [User, Testimonial, Faq, ServiceFee, Contact, Exchange, Currencies, ExchangePairs],
-  migrations: ["src/migrations/*.ts"],
+  // migrations: ["src/migrations/*.ts"],
   synchronize: process.env.NODE_ENV !== 'production',
   logging: process.env.NODE_ENV === 'development',
 });
