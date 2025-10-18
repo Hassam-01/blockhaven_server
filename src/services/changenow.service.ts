@@ -164,6 +164,11 @@ class ChangeNowService {
   private currencyRepo?: Repository<Currencies>;
   private pairsSvc?: ExchangeService;
 
+  constructor() {
+    this.apiKey = process.env.CHANGENOW_API_KEY || '';
+    this.XapiKey = process.env.X_API_KEY || process.env.CHANGENOW_API_KEY || '';
+  }
+
   private getPairsService(): ExchangeService {
     if (!this.pairsSvc) {
       this.pairsSvc = new ExchangeService();
@@ -273,54 +278,52 @@ class ChangeNowService {
    */
   async getAvailableCurrencies(options: CurrencyOptions = {}) {
     try {
-      const params = new URLSearchParams();
-      if (options.active !== undefined)
-        params.append("active", String(options.active));
-      if (options.flow) params.append("flow", options.flow);
-      if (options.buy !== undefined) params.append("buy", String(options.buy));
-      if (options.sell !== undefined)
-        params.append("sell", String(options.sell));
+      // Get currencies from database instead of API
+      const dbCurrencies = await this.getPairsService().getAvailableCurrencies();
 
-      const response: AxiosResponse = await axios.get(
-        `${this.baseUrl}/exchange/currencies?${params.toString()}`,
-        { headers: this.getHeaders() }
-      );
-
-      // Replace ChangeNOW image URLs with our own proxied URLs
+      // Transform DB fields to match ChangNow API response format
       const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";
-      const filteredData = response.data.map((currency: any) => {
-        if (currency.image && currency.image.includes("changenow.io")) {
-          // Replace with our own image proxy URL
-          currency.image = `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`;
-        }
-        return currency;
-      });
-      // If a repository instance is provided/initialized, persist the currencies; otherwise just return them
+      const transformedCurrencies = dbCurrencies.map((currency: any) => ({
+        ticker: currency.ticker,
+        name: currency.name,
+        image: currency.image && currency.image.includes("changenow.io") 
+          ? `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`
+          : currency.image,
+        hasExternalId: currency.has_external_id,
+        isExtraIdSupported: currency.is_extra_id_supported,
+        isFiat: currency.is_fiat,
+        featured: currency.featured,
+        isStable: currency.is_stable,
+        supportsFixedRate: currency.support_fixed_rate,
+        network: currency.network,
+        tokenContract: currency.token_contract,
+        buy: currency.buy_enabled,
+        sell: currency.sell_enabled,
+        legacyTicker: currency.legacy_ticker,
+        isActive: currency.is_active
+      }));
 
-      const uniqueTickers = await this.getPairsService().getUniqueCurrencies();
-      console.log("unique tickers: ", uniqueTickers)
-      const uniquePairs = filteredData.filter((currency: any) =>
-        uniqueTickers.includes(currency.ticker)
-      );
-      console.log("pairs: ", uniquePairs, this.currencyRepo)
-      if (this.currencyRepo) {
-        // Save currencies individually to handle duplicates gracefully
-        for (const currency of uniquePairs) {
-          try {
-            await this.currencyRepo.save(currency);
-          } catch (saveError: any) {
-            // Ignore duplicate key errors, but log other errors
-            if (!saveError.message.includes('duplicate key value')) {
-              console.warn('Error saving currency:', currency.ticker, saveError.message);
-            }
-          }
-        }
+      // Apply filters based on options
+      let filteredCurrencies = transformedCurrencies;
+      
+      if (options.active !== undefined) {
+        filteredCurrencies = filteredCurrencies.filter((c: any) => c.isActive === options.active);
       }
-      return uniquePairs;
+      if (options.flow) {
+        // For now, include all since DB doesn't have flow-specific filtering
+      }
+      if (options.buy !== undefined) {
+        filteredCurrencies = filteredCurrencies.filter((c: any) => c.buy === options.buy);
+      }
+      if (options.sell !== undefined) {
+        filteredCurrencies = filteredCurrencies.filter((c: any) => c.sell === options.sell);
+      }
+
+      return filteredCurrencies;
     } catch (error: any) {
       console.error(
-        "Error fetching currencies:",
-        error.response?.data || error.message
+        "Error fetching currencies from database:",
+        error.message
       );
       throw error;
     }
@@ -531,10 +534,9 @@ class ChangeNowService {
         params.append("fromNetwork", options.fromNetwork);
       if (options?.toNetwork) params.append("toNetwork", options.toNetwork);
       if (options?.flow) params.append("flow", options.flow);
-
       const response: AxiosResponse = await axios.get(
         `${this.baseUrl}/exchange/range?${params.toString()}`,
-        { headers: this.getHeaders() }
+        { headers: this.getHeaders(true) }
       );
 
       return response.data;
@@ -874,6 +876,100 @@ class ChangeNowService {
         error.response?.data || error.message
       );
       throw new Error("Failed to get estimated amount");
+    }
+  }
+
+  /**
+   * Fetch currencies from ChangeNOW API and store in database
+   */
+  async fetchAndStoreCurrencies(): Promise<void> {
+    try {
+      console.log("Fetching currencies from ChangeNOW API009...");
+      const response = await axios.get(`${this.baseUrl}/exchange/currencies`, {
+        headers: this.getHeaders(),
+      });
+
+      const apiCurrencies = response.data;
+      console.log(`Fetched ${apiCurrencies.length} currencies from API`);
+
+      if (!this.currencyRepo) {
+        throw new Error("Currency repository not set");
+      }
+
+      // Get existing currencies
+      const existingCurrencies = await this.currencyRepo.find();
+      const existingMap = new Map<string, Currencies>();
+      existingCurrencies.forEach((c) => {
+        const key = `${c.ticker}:${c.network}`;
+        existingMap.set(key, c);
+      });
+
+      const currenciesToSave: Currencies[] = [];
+      const currenciesToUpdate: Currencies[] = [];
+
+      for (const apiCurrency of apiCurrencies) {
+        const key = `${apiCurrency.ticker}:${apiCurrency.network || ''}`;
+        const existing = existingMap.get(key);
+
+        // Log image information for debugging
+        console.log(`Currency ${apiCurrency.ticker}: image = ${apiCurrency.image}, has image: ${!!apiCurrency.image}`);
+
+        if (!existing) {
+          // Create new currency
+          const newCurrency = new Currencies();
+          newCurrency.ticker = apiCurrency.ticker;
+          newCurrency.name = apiCurrency.name;
+          newCurrency.image = apiCurrency.image;
+          console.log(`Setting image for ${apiCurrency.ticker} to: ${newCurrency.image}`);
+          newCurrency.has_external_id = apiCurrency.hasExternalId || false;
+          newCurrency.is_extra_id_supported = apiCurrency.isExtraIdSupported || false;
+          newCurrency.is_fiat = apiCurrency.isFiat || false;
+          newCurrency.featured = apiCurrency.featured || false;
+          newCurrency.is_stable = apiCurrency.isStable || false;
+          newCurrency.support_fixed_rate = apiCurrency.supportsFixedRate || false;
+          newCurrency.network = apiCurrency.network || '';
+          newCurrency.token_contract = apiCurrency.tokenContract || null;
+          newCurrency.buy_enabled = apiCurrency.buy || false;
+          newCurrency.sell_enabled = apiCurrency.sell || false;
+          newCurrency.legacy_ticker = apiCurrency.legacyTicker || null;
+          newCurrency.is_active = apiCurrency.isActive !== false; // default true
+
+          currenciesToSave.push(newCurrency);
+        } else {
+          // Update existing if image is null or different
+          let needsUpdate = false;
+          if (!existing.image && apiCurrency.image) {
+            console.log(`Updating image for existing currency ${apiCurrency.ticker} from null to: ${apiCurrency.image}`);
+            existing.image = apiCurrency.image;
+            needsUpdate = true;
+          }
+          // Update other fields if needed
+          if (existing.name !== apiCurrency.name) {
+            existing.name = apiCurrency.name;
+            needsUpdate = true;
+          }
+          // Add more fields as necessary
+
+          if (needsUpdate) {
+            currenciesToUpdate.push(existing);
+          }
+        }
+      }
+
+      if (currenciesToSave.length > 0) {
+        await this.currencyRepo.save(currenciesToSave);
+        console.log(`Saved ${currenciesToSave.length} new currencies`);
+      }
+
+      if (currenciesToUpdate.length > 0) {
+        await this.currencyRepo.save(currenciesToUpdate);
+        console.log(`Updated ${currenciesToUpdate.length} currencies`);
+      }
+
+      console.log("✅ Currencies stored successfully");
+    } catch (error: any) {
+      console.error("Error fetching and storing currencies:", error.message);
+      throw error;
     }
   }
 }

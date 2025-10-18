@@ -580,7 +580,7 @@ Get available currencies for exchange from the database. Currencies are automati
       "id": 1,
       "ticker": "btc",
       "name": "Bitcoin",
-      "image_url": "https://api.changenow.io/images/currencies/btc.png",
+      "image": "https://api.changenow.io/images/currencies/btc.png",
       "has_external_id": false,
       "is_fiat": false,
       "featured": true,

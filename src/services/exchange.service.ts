@@ -33,6 +33,7 @@ class ExchangeService {
   private currencyRepository: Repository<Currencies>;
   private exchangePairsRepository: Repository<ExchangePairs>;
   private changeNowService: ChangeNowService;
+  private pairService: ExchangeService;
 
   constructor() {
     this.exchangeRepository = AppDataSource.getRepository(Exchange);
@@ -245,21 +246,41 @@ class ExchangeService {
     }
   }
 
-  // TODO 
-  async getAvailableBlockhavenCurrencies(){
+  // TODO
+  async getAvailableBlockhavenCurrencies() {
     try {
       const currencies = await this.currencyRepository.find();
-      console.log()
+      console.log();
       return currencies;
-    }catch{
-        throw new Error("Failed to get currencies: Exchange Service Error")
+    } catch {
+      throw new Error("Failed to get currencies: Exchange Service Error");
     }
   }
-
 
   async getAvailableCurrencies(): Promise<any[]> {
     try {
       const currencies = await this.currencyRepository.find();
+      // here we will add the currencies in the exchange_pair entity but not in the currencies
+      // include currencies that appear in exchange_pairs but are missing from currencies table
+      const uniqueTickers = await this.getUniqueCurrencies();
+      for (const u of uniqueTickers) {
+        const exists = currencies.some(
+          (c: any) => c.ticker === u.ticker && c.network === u.network
+        );
+        if (!exists) {
+          // Add a minimal representation for currencies that exist only in exchange_pairs
+          currencies.push({
+            ticker: u.ticker,
+            network: u.network,
+            name: u.ticker.toUpperCase(),
+            image: null,
+            featured: false,
+          } as any);
+        }
+      }
+
+      // Optional: keep result ordered by ticker + network
+      currencies.sort((a: any, b: any) => a.ticker.localeCompare(b.ticker));
       return currencies;
     } catch (error: any) {
       console.error("Exchange Service Error:", error.message);
@@ -269,15 +290,20 @@ class ExchangeService {
 
   async fetchAndStoreAvailablePairs(): Promise<void> {
     try {
-      console.log("Fetching available pairs and currencies from ChangeNOW API...");
+      console.log(
+        "Fetching available pairs and currencies from ChangeNOW API..."
+      );
 
       // First, fetch and store currencies
       console.log("Fetching currencies from ChangeNOW API...");
       try {
-        await this.changeNowService.getAvailableCurrencies();
+        await this.changeNowService.fetchAndStoreCurrencies();
         console.log("✅ Currencies fetched and stored successfully");
       } catch (currencyError: any) {
-        console.warn("⚠️ Failed to fetch currencies, continuing with pairs:", currencyError.message);
+        console.warn(
+          "⚠️ Failed to fetch currencies, continuing with pairs:",
+          currencyError.message
+        );
       }
 
       // Get all available pairs from ChangeNOW
@@ -411,18 +437,18 @@ class ExchangeService {
 
     return { new: pairsToSave.length, updated: pairsToUpdate.length };
   }
-  async getUniqueCurrencies(): Promise<string[]> {
+  async getUniqueCurrencies(): Promise<{ ticker: string; network: string }[]> {
     try {
       const sql = `
-                SELECT DISTINCT from_ticker AS ticker FROM exchange_pairs
-                UNION
-                SELECT DISTINCT to_ticker AS ticker FROM exchange_pairs
-                ORDER BY ticker
-            `;
+            SELECT DISTINCT from_ticker AS ticker, from_network AS network FROM exchange_pairs
+            UNION
+            SELECT DISTINCT to_ticker AS ticker, to_network AS network FROM exchange_pairs
+            ORDER BY ticker, network
+        `;
 
-      const rows: { ticker: string }[] =
+      const rows: { ticker: string; network: string }[] =
         await this.exchangePairsRepository.query(sql);
-      return rows.map((r) => r.ticker);
+      return rows.map((r) => ({ ticker: r.ticker, network: r.network }));
     } catch (error: any) {
       console.error("Exchange Service Error:", error.message);
       throw new Error("Failed to get unique currencies");
@@ -436,12 +462,12 @@ class ExchangeService {
           ep.from_ticker,
           ep.from_network,
           fc.name as from_name,
-          fc.image_url as from_image,
+          fc.image as from_image,
           fc.featured as from_featured,
           ep.to_ticker,
           ep.to_network,
           tc.name as to_name,
-          tc.image_url as to_image,
+          tc.image as to_image,
           tc.featured as to_featured,
           ep.flow_standard,
           ep.flow_fixed_rate
@@ -485,13 +511,12 @@ class ExchangeService {
 
   async fetchAndStoreCurrencies(): Promise<void> {
     try {
-      console.log("Fetching currencies from ChangeNOW API...");
+      console.log("Fetching currencies from ChangeNOW API100...");
 
       // Fetch currencies from ChangeNOW API and store them
-      await this.changeNowService.getAvailableCurrencies();
+      await this.changeNowService.fetchAndStoreCurrencies();
 
       console.log("✅ Currencies fetched and stored successfully");
-
     } catch (error: any) {
       console.error("Exchange Service Error:", error.message);
       throw new Error(`Failed to fetch and store currencies: ${error.message}`);

@@ -16,7 +16,7 @@ export class Currencies {
   @Column({ type: "varchar", length: 100 })
   name!: string;
   @Column({ type: "text", nullable: true })
-  image_url!: string;
+  image!: string;
   @Column({ type: "boolean", default: false })
   has_external_id!: boolean;
   @Column({ type: "boolean", default: false })

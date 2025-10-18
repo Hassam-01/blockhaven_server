@@ -287,6 +287,25 @@ class ExchangeController {
     }
   }
 
+  async getEnhancedCurrencies(_request: FastifyRequest, reply: FastifyReply) {
+    try {
+      const currencies = await this.exchangeService.getEnhancedCurrencies();
+
+      return reply.status(200).send({
+        success: true,
+        message: "Enhanced currencies retrieved successfully",
+        data: currencies,
+      });
+    } catch (error: any) {
+      console.error("Get Enhanced Currencies Error:", error.message);
+      return reply.status(500).send({
+        success: false,
+        error: "Failed to get enhanced currencies",
+        details: error.message,
+      });
+    }
+  }
+
   async fetchAndStoreAvailablePairs(request: FastifyRequest, reply: FastifyReply) {
     try {
       await this.exchangeService.fetchAndStoreAvailablePairs();
