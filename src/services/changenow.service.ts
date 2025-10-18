@@ -906,54 +906,45 @@ class ChangeNowService {
 
       const currenciesToSave: Currencies[] = [];
       const currenciesToUpdate: Currencies[] = [];
+      const savingMap = new Map<string, boolean>(); // Track currencies being saved in this batch
 
       for (const apiCurrency of apiCurrencies) {
         const key = `${apiCurrency.ticker}:${apiCurrency.network || ''}`;
         const existing = existingMap.get(key);
+        const alreadySaving = savingMap.get(key);
 
-        // Log image information for debugging
-        console.log(`Currency ${apiCurrency.ticker}: image = ${apiCurrency.image}, has image: ${!!apiCurrency.image}`);
-
-        if (!existing) {
-          // Create new currency
-          const newCurrency = new Currencies();
-          newCurrency.ticker = apiCurrency.ticker;
-          newCurrency.name = apiCurrency.name;
-          newCurrency.image = apiCurrency.image;
-          console.log(`Setting image for ${apiCurrency.ticker} to: ${newCurrency.image}`);
-          newCurrency.has_external_id = apiCurrency.hasExternalId || false;
-          newCurrency.is_extra_id_supported = apiCurrency.isExtraIdSupported || false;
-          newCurrency.is_fiat = apiCurrency.isFiat || false;
-          newCurrency.featured = apiCurrency.featured || false;
-          newCurrency.is_stable = apiCurrency.isStable || false;
-          newCurrency.support_fixed_rate = apiCurrency.supportsFixedRate || false;
-          newCurrency.network = apiCurrency.network || '';
-          newCurrency.token_contract = apiCurrency.tokenContract || null;
-          newCurrency.buy_enabled = apiCurrency.buy || false;
-          newCurrency.sell_enabled = apiCurrency.sell || false;
-          newCurrency.legacy_ticker = apiCurrency.legacyTicker || null;
-          newCurrency.is_active = apiCurrency.isActive !== false; // default true
-
-          currenciesToSave.push(newCurrency);
-        } else {
+        // Skip if already exists in database or already being saved in this batch
+        if (existing || alreadySaving) {
           // Update existing if image is null or different
-          let needsUpdate = false;
-          if (!existing.image && apiCurrency.image) {
+          if (existing && !existing.image && apiCurrency.image) {
             console.log(`Updating image for existing currency ${apiCurrency.ticker} from null to: ${apiCurrency.image}`);
             existing.image = apiCurrency.image;
-            needsUpdate = true;
-          }
-          // Update other fields if needed
-          if (existing.name !== apiCurrency.name) {
-            existing.name = apiCurrency.name;
-            needsUpdate = true;
-          }
-          // Add more fields as necessary
-
-          if (needsUpdate) {
             currenciesToUpdate.push(existing);
           }
+          continue;
         }
+
+        // Create new currency
+        const newCurrency = new Currencies();
+        newCurrency.ticker = apiCurrency.ticker;
+        newCurrency.name = apiCurrency.name;
+        newCurrency.image = apiCurrency.image;
+        console.log(`Setting image for ${apiCurrency.ticker} to: ${newCurrency.image}`);
+        newCurrency.has_external_id = apiCurrency.hasExternalId || false;
+        newCurrency.is_extra_id_supported = apiCurrency.isExtraIdSupported || false;
+        newCurrency.is_fiat = apiCurrency.isFiat || false;
+        newCurrency.featured = apiCurrency.featured || false;
+        newCurrency.is_stable = apiCurrency.isStable || false;
+        newCurrency.support_fixed_rate = apiCurrency.supportsFixedRate || false;
+        newCurrency.network = apiCurrency.network || '';
+        newCurrency.token_contract = apiCurrency.tokenContract || null;
+        newCurrency.buy_enabled = apiCurrency.buy || false;
+        newCurrency.sell_enabled = apiCurrency.sell || false;
+        newCurrency.legacy_ticker = apiCurrency.legacyTicker || null;
+        newCurrency.is_active = apiCurrency.isActive !== false; // default true
+
+        currenciesToSave.push(newCurrency);
+        savingMap.set(key, true); // Mark as being saved
       }
 
       if (currenciesToSave.length > 0) {

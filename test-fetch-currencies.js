@@ -6,23 +6,27 @@
  */
 
 import axios from 'axios';
+import { createTempAdmin, deleteTempAdmin } from './temp-admin-utils.js';
 
 const BASE_URL = 'http://localhost:3000/api';
 
-// Admin credentials (from create-admin-user.js)
-const ADMIN_EMAIL = 'ahgoal7@gmail.com';
-const ADMIN_PASSWORD = 'admin';
-
 async function testFetchCurrencies() {
+    let tempAdmin = null;
+
     try {
         console.log('🔄 Testing Fetch Currencies Admin Endpoint');
         console.log('==========================================\n');
 
-        // Step 1: Login as admin
-        console.log('1️⃣ Logging in as admin...');
+        // Step 1: Create temporary admin user
+        console.log('1️⃣ Creating temporary admin user...');
+        tempAdmin = await createTempAdmin();
+        console.log('✅ Temporary admin created!\n');
+
+        // Step 2: Login as admin
+        console.log('2️⃣ Logging in as temporary admin...');
         const loginResponse = await axios.post(`${BASE_URL}/users/login`, {
-            email: ADMIN_EMAIL,
-            password: ADMIN_PASSWORD
+            email: tempAdmin.email,
+            password: tempAdmin.password
         });
 
         if (!loginResponse.data.success) {
@@ -33,8 +37,8 @@ async function testFetchCurrencies() {
         console.log('✅ Admin login successful!');
         console.log(`🔑 Token: ${token.substring(0, 50)}...\n`);
 
-        // Step 2: Test fetch currencies endpoint with admin token
-        console.log('2️⃣ Testing fetch currencies endpoint...');
+        // Step 3: Test fetch currencies endpoint with admin token
+        console.log('3️⃣ Testing fetch currencies endpoint...');
         const headers = {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -45,8 +49,8 @@ async function testFetchCurrencies() {
         console.log('✅ Fetch currencies request successful!');
         console.log('📊 Response:', fetchResponse.data);
 
-        // Step 3: Test without authentication (should fail)
-        console.log('\n3️⃣ Testing without authentication (should fail)...');
+        // Step 4: Test without authentication (should fail)
+        console.log('\n4️⃣ Testing without authentication (should fail)...');
         try {
             await axios.post(`${BASE_URL}/exchanges/fetch-currencies`, {}, {
                 headers: {
@@ -62,8 +66,8 @@ async function testFetchCurrencies() {
             }
         }
 
-        // Step 4: Test with regular user token (if available)
-        console.log('\n4️⃣ Testing with invalid/non-admin token (should fail)...');
+        // Step 5: Test with invalid token (should fail)
+        console.log('\n5️⃣ Testing with invalid/non-admin token (should fail)...');
         try {
             const invalidHeaders = {
                 'Authorization': `Bearer invalid-token`,
@@ -81,9 +85,23 @@ async function testFetchCurrencies() {
 
         console.log('\n🎉 All tests completed successfully!');
 
+        // Cleanup: Delete temporary admin
+        console.log('\n🧹 Cleaning up temporary admin user...');
+        await deleteTempAdmin();
+
     } catch (error) {
         console.error('❌ Test failed:', error.response?.data || error.message);
         console.error('Full error:', error);
+
+        // Cleanup on error
+        if (tempAdmin) {
+            try {
+                console.log('\n🧹 Cleaning up temporary admin user after error...');
+                await deleteTempAdmin();
+            } catch (cleanupError) {
+                console.error('❌ Cleanup failed:', cleanupError);
+            }
+        }
     }
 }
 
