@@ -8,7 +8,7 @@
 import axios from 'axios';
 import { createTempAdmin, deleteTempAdmin } from './temp-admin-utils.js';
 
-const BASE_URL = 'http://localhost:3000/api';
+const BASE_URL = process.env.API_BASE_URL || 'http://blockhaven.co/api';
 
 async function populateDatabaseWithAdmin() {
     let tempAdmin = null;
