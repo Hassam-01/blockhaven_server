@@ -279,9 +279,18 @@ class ExchangeService {
         }
       }
 
+      // Proxy images through server URL
+      const baseUrl = process.env.API_BASE_URL || "http://localhost:3000";
+      const currenciesWithProxiedImages = currencies.map((currency: any) => ({
+        ...currency,
+        image: currency.image && currency.image.includes("changenow.io")
+          ? `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`
+          : currency.image,
+      }));
+
       // Optional: keep result ordered by ticker + network
-      currencies.sort((a: any, b: any) => a.ticker.localeCompare(b.ticker));
-      return currencies;
+      currenciesWithProxiedImages.sort((a: any, b: any) => a.ticker.localeCompare(b.ticker));
+      return currenciesWithProxiedImages;
     } catch (error: any) {
       console.error("Exchange Service Error:", error.message);
       throw new Error(`Failed to get available currencies: ${error.message}`);

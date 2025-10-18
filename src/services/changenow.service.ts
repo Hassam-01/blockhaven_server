@@ -166,7 +166,7 @@ class ChangeNowService {
 
   constructor() {
     this.apiKey = process.env.CHANGENOW_API_KEY || '';
-    this.XapiKey = process.env.X_API_KEY || process.env.CHANGENOW_API_KEY || '';
+    this.XapiKey = process.env.CHANGENOW_X_API_KEY || process.env.CHANGENOW_API_KEY || '';
   }
 
   private getPairsService(): ExchangeService {
