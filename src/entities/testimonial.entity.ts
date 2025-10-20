@@ -6,7 +6,9 @@ export class Testimonial {
   id: string;
 
   @ManyToOne('User', 'testimonials', { nullable: true })
-  @JoinColumn({ name: 'user_id' })
+  // The database schema uses the column name "userId" (see schema.sql).
+  // Ensure the entity maps to that column to avoid "column does not exist" errors.
+  @JoinColumn({ name: 'userId' })
   user: any | null;
 
   @Column({type: "int"})
