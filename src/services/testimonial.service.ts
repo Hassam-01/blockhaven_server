@@ -32,18 +32,9 @@ export class TestimonialService {
   /**
    * Create a new testimonial (logged-in users only)
    */
-  async createTestimonial(userId: string, testimonialData: CreateTestimonialData): Promise<Testimonial> {
+  // userId is optional to allow anonymous submissions
+  async createTestimonial(userId: string | undefined, testimonialData: CreateTestimonialData): Promise<Testimonial> {
     const { rating, text } = testimonialData;
-
-    // Validate user exists and is active
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    if (!user.is_active) {
-      throw new Error('User account is deactivated');
-    }
 
     // Validate input
     if (!text || text.trim().length === 0) {
@@ -54,18 +45,32 @@ export class TestimonialService {
       throw new Error('Rating must be between 1 and 5');
     }
 
-    // Check if user already has a testimonial
-    const existingTestimonial = await this.testimonialRepository.findOne({
-      where: { user: { id: userId } }
-    });
+    let user = null as any;
 
-    if (existingTestimonial) {
-      throw new Error('You have already submitted a testimonial. You can update your existing testimonial instead.');
+    if (userId) {
+      // Validate user exists and is active
+      user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      if (!user.is_active) {
+        throw new Error('User account is deactivated');
+      }
+
+      // Check if user already has a testimonial
+      const existingTestimonial = await this.testimonialRepository.findOne({
+        where: { user: { id: userId } }
+      });
+
+      if (existingTestimonial) {
+        throw new Error('You have already submitted a testimonial. You can update your existing testimonial instead.');
+      }
     }
 
-    // Create new testimonial
+    // Create new testimonial. If anonymous, user will be null.
     const testimonial = this.testimonialRepository.create({
-      user: { id: userId },
+      user: user ? { id: userId } : null,
       rating: Math.round(rating), // Ensure integer rating
       text: text.trim(),
       is_approved: false, // Testimonials need admin approval

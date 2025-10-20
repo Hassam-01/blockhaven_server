@@ -32,8 +32,8 @@ export async function testimonialRoutes(fastify: FastifyInstance, options: Fasti
   });
 
   // POST /api/testimonials - Create new testimonial (logged-in users only)
+  // Make this endpoint public so anyone (including anonymous users) can submit a testimonial
   fastify.post('/', {
-    preHandler: [authMiddleware.authenticate.bind(authMiddleware)],
     schema: {
       body: {
         type: 'object',

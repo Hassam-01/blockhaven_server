@@ -1,12 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('testimonials')
 export class Testimonial {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne('User', 'testimonials')
-  user: any;
+  @ManyToOne('User', 'testimonials', { nullable: true })
+  @JoinColumn({ name: 'user_id' })
+  user: any | null;
 
   @Column({type: "int"})
   rating: number;

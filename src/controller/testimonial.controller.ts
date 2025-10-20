@@ -179,13 +179,8 @@ export class TestimonialController {
   async createTestimonial(request: FastifyRequest, reply: FastifyReply) {
     try {
       const testimonialData = request.body as CreateTestimonialData;
+      // userId is optional now; anonymous users can submit testimonials
       const userId = (request as any).user?.userId;
-
-      if (!userId) {
-        return reply.status(401).send({
-          error: 'Unauthorized: User ID not found'
-        });
-      }
 
       // Basic validation
       if (!testimonialData.rating || !testimonialData.text) {
@@ -194,7 +189,7 @@ export class TestimonialController {
         });
       }
 
-      const testimonial = await this.testimonialService.createTestimonial(userId, testimonialData);
+  const testimonial = await this.testimonialService.createTestimonial(userId, testimonialData);
 
       return reply.status(201).send({
         success: true,
