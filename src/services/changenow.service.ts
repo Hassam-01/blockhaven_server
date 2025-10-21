@@ -286,8 +286,8 @@ class ChangeNowService {
       const transformedCurrencies = dbCurrencies.map((currency: any) => ({
         ticker: currency.ticker,
         name: currency.name,
-        image: currency.image && currency.image.includes("changenow.io") 
-          ? `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`
+          image: currency.image && currency.image.includes("changenow.io") 
+            ? `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}/${(currency.network || '').toLowerCase()}`
           : currency.image,
         hasExternalId: currency.has_external_id,
         isExtraIdSupported: currency.is_extra_id_supported,
@@ -827,7 +827,7 @@ class ChangeNowService {
       const filteredData = response.data.map((currency: any) => {
         if (currency.image && currency.image.includes("changenow.io")) {
           // Replace with our own image proxy URL
-          currency.image = `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`;
+            currency.image = `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}/${(currency.network || '').toLowerCase()}`; 
         }
         return currency;
       });

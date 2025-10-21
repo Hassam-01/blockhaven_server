@@ -284,7 +284,7 @@ class ExchangeService {
       const currenciesWithProxiedImages = currencies.map((currency: any) => ({
         ...currency,
         image: currency.image && currency.image.includes("changenow.io")
-          ? `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}`
+          ? `${baseUrl}/api/blockhaven/coin-image/${currency.ticker}/${(currency.network || '').toLowerCase()}`
           : currency.image,
       }));
 

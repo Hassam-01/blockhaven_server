@@ -4,15 +4,16 @@ import { ImageProxyController } from '../controller/image-proxy.controller.js';
 export async function imageProxyRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
   const imageProxyController = new ImageProxyController();
 
-  // GET /api/blockhaven/coin-image/:ticker - Proxy coin images
-  fastify.get('/coin-image/:ticker', {
+  // GET /api/blockhaven/coin-image/:ticker/:network - Proxy coin images (unique by ticker+network)
+  fastify.get('/coin-image/:ticker/:network', {
     schema: {
       params: {
         type: 'object',
         properties: {
-          ticker: { type: 'string' }
+          ticker: { type: 'string' },
+          network: { type: 'string' }
         },
-        required: ['ticker']
+        required: ['ticker', 'network']
       }
     }
   }, async (request, reply) => {

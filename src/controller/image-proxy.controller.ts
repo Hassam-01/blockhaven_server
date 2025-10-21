@@ -1,27 +1,52 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import axios from 'axios';
+import { AppDataSource } from '../config/data-source.js';
+import { Currencies } from '../entities/currencies.entity.js';
 
-// Cache to store ticker -> image URL mapping
+// Cache to store ticker+network -> image URL mapping
 const imageUrlCache = new Map<string, string>();
 
 export class ImageProxyController {
     
     /**
      * Proxy coin images from ChangeNOW to avoid exposing their branding
-     * GET /api/blockhaven/coin-image/:ticker
+     * GET /api/blockhaven/coin-image/:ticker/:network
+     * Images are uniquely identified by ticker + network
      */
     async proxyCoinImage(request: FastifyRequest, reply: FastifyReply) {
         try {
-            const { ticker } = request.params as { ticker: string };
+            const { ticker, network } = request.params as { ticker: string; network: string };
             
-            if (!ticker) {
+            if (!ticker || !network) {
                 return reply.status(400).send({
                     success: false,
-                    error: 'Ticker is required'
+                    error: 'Ticker and network are required'
                 });
             }
 
-            let imageUrl = imageUrlCache.get(ticker.toLowerCase());
+            // Key images by ticker + network to avoid collisions
+            const key = `${ticker.toLowerCase()}_${network.toLowerCase()}`;
+            let imageUrl = imageUrlCache.get(key);
+
+            // Try DB lookup first (local currencies table) to avoid relying solely on remote API
+            try {
+                const repo = AppDataSource.getRepository(Currencies);
+                // Use case-insensitive match via LOWER in query builder
+                const dbCurrency = await repo
+                    .createQueryBuilder('c')
+                    .where('LOWER(c.ticker) = :ticker', { ticker: ticker.toLowerCase() })
+                    .andWhere('LOWER(c.network) = :network', { network: network.toLowerCase() })
+                    .getOne();
+
+                if (dbCurrency && dbCurrency.image) {
+                    imageUrl = dbCurrency.image;
+                    imageUrlCache.set(key, imageUrl);
+                }
+            } catch (dbErr) {
+                // If DB isn't available yet or any error occurs, we'll fallback to remote API below
+                // Do not fail hard here
+                // console.debug('DB lookup for currency image failed:', dbErr?.message || dbErr);
+            }
             
             // If we don't have the URL cached, we need to get it from the currencies API
             if (!imageUrl) {
@@ -35,15 +60,23 @@ export class ImageProxyController {
                             }
                         }
                     );
-                    
-                    // Find the currency and get its image URL
-                    const currency = currenciesResponse.data.find((curr: any) => 
-                        curr.ticker.toLowerCase() === ticker.toLowerCase()
+
+                    // First try to find currency using both ticker and network
+                    let currency = currenciesResponse.data.find((curr: any) => 
+                        curr.ticker && curr.ticker.toLowerCase() === ticker.toLowerCase() &&
+                        ((curr.network || '').toLowerCase() === network.toLowerCase())
                     );
-                    
+
+                    // If no exact network match, fall back to ticker-only match (preserve previous behavior)
+                    if (!currency) {
+                        currency = currenciesResponse.data.find((curr: any) => 
+                            curr.ticker && curr.ticker.toLowerCase() === ticker.toLowerCase()
+                        );
+                    }
+
                     if (currency && currency.image) {
                         imageUrl = currency.image;
-                        imageUrlCache.set(ticker.toLowerCase(), currency.image);
+                        imageUrlCache.set(key, currency.image);
                     }
                 } catch (apiError) {
                     console.error('Failed to fetch currency data:', apiError);
@@ -91,7 +124,7 @@ export class ImageProxyController {
      * Get coin image URL without ChangeNOW branding
      * This returns the URL to your proxied image
      */
-    getCoinImageUrl(ticker: string, baseUrl: string = 'http://localhost:3000'): string {
-        return `${baseUrl}/api/blockhaven/coin-image/${ticker.toLowerCase()}`;
+    getCoinImageUrl(ticker: string, network: string, baseUrl: string = 'http://localhost:3000'): string {
+        return `${baseUrl}/api/blockhaven/coin-image/${ticker.toLowerCase()}/${network.toLowerCase()}`;
     }
 }
