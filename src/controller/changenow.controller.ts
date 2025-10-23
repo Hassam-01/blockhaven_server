@@ -333,7 +333,7 @@ export class ChangeNowController {
       console.error("Error in getExchangeRange:", error);
       return reply.status(500).send({
         success: false,
-        error: error.message || "Failed to fetch exchange range",
+        error: error.response?.data || "Failed to fetch exchange range",
       });
     }
   }

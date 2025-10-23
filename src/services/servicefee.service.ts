@@ -53,11 +53,9 @@ export class ServiceFeeService {
    */
   async getAllServiceFees(): Promise<ServiceFee[]> {
     // Get all service fee configurations ordered by creation date
-    console.log("request in the service: ");
     const data = await this.serviceFeeRepository.find({
       order: { created_at: "DESC" },
     });
-    console.log("request in the service: ", data);
     return data;
   }
 

@@ -12,7 +12,6 @@ export class ServiceFeeController {
    * Get current service fee configuration
    */
   async getCurrentServiceFee(_request: FastifyRequest, reply: FastifyReply) {
-    console.log("request received for fees: ")
     try {
       const serviceFee = await this.serviceFeeService.getCurrentServiceFee();
 
@@ -33,7 +32,6 @@ export class ServiceFeeController {
    * Get all service fee configurations
    */
   async getAllServiceFees(_request: FastifyRequest, reply: FastifyReply) {
-    console.log("request received for all fees: ")
     try {
       const serviceFees = await this.serviceFeeService.getAllServiceFees();
 

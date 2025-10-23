@@ -538,7 +538,6 @@ class ChangeNowService {
         `${this.baseUrl}/exchange/range?${params.toString()}`,
         { headers: this.getHeaders(true) }
       );
-
       return response.data;
     } catch (error: any) {
       console.error(
